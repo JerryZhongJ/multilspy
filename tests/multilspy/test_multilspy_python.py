@@ -2,13 +2,16 @@
 This file contains tests for running the Python Language Server: jedi-language-server
 """
 
+from pathlib import PurePath
+
 import pytest
+
 from multilspy import LanguageServer
 from multilspy.multilspy_config import Language
 from tests.test_utils import create_test_context
-from pathlib import PurePath
 
 pytest_plugins = ("pytest_asyncio",)
+
 
 @pytest.mark.asyncio
 async def test_multilspy_python_black():
@@ -19,16 +22,20 @@ async def test_multilspy_python_black():
     params = {
         "code_language": code_language,
         "repo_url": "https://github.com/psf/black/",
-        "repo_commit": "f3b50e466969f9142393ec32a4b2a383ffbe5f23"
+        "repo_commit": "f3b50e466969f9142393ec32a4b2a383ffbe5f23",
     }
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = LanguageServer.create(
+            context.config, context.logger, context.source_directory
+        )
 
         # All the communication with the language server must be performed inside the context manager
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
         # The context manager is an asynchronous context manager, so it must be used with async with.
-        async with lsp.start_server():
-            result = await lsp.request_definition(str(PurePath("src/black/mode.py")), 163, 4)
+        async with lsp.running():
+            result = await lsp.request_definition(
+                str(PurePath("src/black/mode.py")), 163, 4
+            )
 
             assert isinstance(result, list)
             assert len(result) == 1
@@ -39,7 +46,9 @@ async def test_multilspy_python_black():
                 "end": {"line": 163, "character": 20},
             }
 
-            result = await lsp.request_references(str(PurePath("src/black/mode.py")), 163, 4)
+            result = await lsp.request_references(
+                str(PurePath("src/black/mode.py")), 163, 4
+            )
 
             assert isinstance(result, list)
             assert len(result) == 8

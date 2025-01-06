@@ -2,14 +2,17 @@
 This file contains tests for running the Java Language Server: Eclipse JDT.LS
 """
 
-import pytest
 from pathlib import PurePath
+
+import pytest
+
 from multilspy import LanguageServer
 from multilspy.multilspy_config import Language
-from multilspy.multilspy_types import Position, CompletionItemKind
+from multilspy.multilspy_types import CompletionItemKind, Position
 from tests.test_utils import create_test_context
 
 pytest_plugins = ("pytest_asyncio",)
+
 
 @pytest.mark.asyncio
 async def test_multilspy_java_clickhouse_highlevel_sinker():
@@ -20,23 +23,31 @@ async def test_multilspy_java_clickhouse_highlevel_sinker():
     params = {
         "code_language": code_language,
         "repo_url": "https://github.com/Index103000/clickhouse-highlevel-sinker/",
-        "repo_commit": "ee31d278918fe5e64669a6840c4d8fb53889e573"
+        "repo_commit": "ee31d278918fe5e64669a6840c4d8fb53889e573",
     }
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = LanguageServer.create(
+            context.config, context.logger, context.source_directory
+        )
 
         # All the communication with the language server must be performed inside the context manager
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
         # The context manager is an asynchronous context manager, so it must be used with async with.
-        async with lsp.start_server():
-            filepath = str(PurePath("src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkManager.java"))
+        async with lsp.running():
+            filepath = str(
+                PurePath(
+                    "src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkManager.java"
+                )
+            )
             result = await lsp.request_definition(filepath, 44, 59)
 
             assert isinstance(result, list)
             assert len(result) == 1
             item = result[0]
             assert item["relativePath"] == str(
-                PurePath("src/main/java/com/xlvchao/clickhouse/component/ScheduledCheckerAndCleaner.java")
+                PurePath(
+                    "src/main/java/com/xlvchao/clickhouse/component/ScheduledCheckerAndCleaner.java"
+                )
             )
             assert item["range"] == {
                 "start": {"line": 22, "character": 11},
@@ -76,7 +87,9 @@ async def test_multilspy_java_clickhouse_highlevel_sinker():
             assert result == [
                 {
                     "relativePath": str(
-                        PurePath("src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkManager.java")
+                        PurePath(
+                            "src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkManager.java"
+                        )
                     ),
                     "range": {
                         "start": {"line": 75, "character": 66},
@@ -85,7 +98,9 @@ async def test_multilspy_java_clickhouse_highlevel_sinker():
                 },
                 {
                     "relativePath": str(
-                        PurePath("src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkManager.java")
+                        PurePath(
+                            "src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkManager.java"
+                        )
                     ),
                     "range": {
                         "start": {"line": 71, "character": 12},
@@ -95,43 +110,75 @@ async def test_multilspy_java_clickhouse_highlevel_sinker():
             ]
 
             completions_filepath = "src/main/java/com/xlvchao/clickhouse/datasource/ClickHouseDataSource.java"
-            with lsp.open_file(completions_filepath):
+            with lsp.file_opened(completions_filepath):
                 deleted_text = lsp.delete_text_between_positions(
                     completions_filepath,
                     Position(line=74, character=17),
-                    Position(line=78, character=4)
+                    Position(line=78, character=4),
                 )
-                assert deleted_text == """newServerNode()
+                assert (
+                    deleted_text
+                    == """newServerNode()
                 .withIp(arr[0])
                 .withPort(Integer.parseInt(arr[1]))
                 .build();
     """
-                completions = await lsp.request_completions(completions_filepath, 74, 17)
-                completions = [completion["completionText"] for completion in completions]
-                assert set(completions) == set(['class', 'newServerNode'])
-            
-            with lsp.open_file(completions_filepath):
+                )
+                completions = await lsp.request_completions(
+                    completions_filepath, 74, 17
+                )
+                completions = [
+                    completion["completionText"] for completion in completions
+                ]
+                assert set(completions) == set(["class", "newServerNode"])
+
+            with lsp.file_opened(completions_filepath):
                 deleted_text = lsp.delete_text_between_positions(
                     completions_filepath,
                     Position(line=75, character=17),
-                    Position(line=78, character=4)
+                    Position(line=78, character=4),
                 )
-                assert deleted_text == """withIp(arr[0])
+                assert (
+                    deleted_text
+                    == """withIp(arr[0])
                 .withPort(Integer.parseInt(arr[1]))
                 .build();
     """
-                completions = await lsp.request_completions(completions_filepath, 75, 17)
-                completions = [completion["completionText"] for completion in completions]
-                assert set(completions) == set(['build', 'equals', 'getClass', 'hashCode', 'toString', 'withIp', 'withPort', 'notify', 'notifyAll', 'wait', 'wait', 'wait', 'newServerNode'])
-            
+                )
+                completions = await lsp.request_completions(
+                    completions_filepath, 75, 17
+                )
+                completions = [
+                    completion["completionText"] for completion in completions
+                ]
+                assert set(completions) == set(
+                    [
+                        "build",
+                        "equals",
+                        "getClass",
+                        "hashCode",
+                        "toString",
+                        "withIp",
+                        "withPort",
+                        "notify",
+                        "notifyAll",
+                        "wait",
+                        "wait",
+                        "wait",
+                        "newServerNode",
+                    ]
+                )
+
             completions_filepath = "src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkBuffer.java"
-            with lsp.open_file(completions_filepath):
+            with lsp.file_opened(completions_filepath):
                 deleted_text = lsp.delete_text_between_positions(
                     completions_filepath,
                     Position(line=136, character=23),
-                    Position(line=143, character=8)
+                    Position(line=143, character=8),
                 )
-                assert deleted_text == """ClickHouseSinkBuffer(
+                assert (
+                    deleted_text
+                    == """ClickHouseSinkBuffer(
                     this.writer,
                     this.writeTimeout,
                     this.batchSize,
@@ -139,9 +186,17 @@ async def test_multilspy_java_clickhouse_highlevel_sinker():
                     this.futures
             );
         """
-                completions = await lsp.request_completions(completions_filepath, 136, 23)
-                completions = [completion["completionText"] for completion in completions if completion["kind"] == CompletionItemKind.Constructor]
-                assert completions == ['ClickHouseSinkBuffer']
+                )
+                completions = await lsp.request_completions(
+                    completions_filepath, 136, 23
+                )
+                completions = [
+                    completion["completionText"]
+                    for completion in completions
+                    if completion["kind"] == CompletionItemKind.Constructor
+                ]
+                assert completions == ["ClickHouseSinkBuffer"]
+
 
 @pytest.mark.asyncio
 async def test_multilspy_java_clickhouse_highlevel_sinker_modified():
@@ -152,50 +207,83 @@ async def test_multilspy_java_clickhouse_highlevel_sinker_modified():
     params = {
         "code_language": code_language,
         "repo_url": "https://github.com/LakshyAAAgrawal/clickhouse-highlevel-sinker/",
-        "repo_commit": "5775fd7a67e7b60998e1614cf44a8a1fc3190ab0"
+        "repo_commit": "5775fd7a67e7b60998e1614cf44a8a1fc3190ab0",
     }
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = LanguageServer.create(
+            context.config, context.logger, context.source_directory
+        )
         # All the communication with the language server must be performed inside the context manager
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
         # The context manager is an asynchronous context manager, so it must be used with async with.
-        async with lsp.start_server():
+        async with lsp.running():
             completions_filepath = "src/main/java/com/xlvchao/clickhouse/datasource/ClickHouseDataSource.java"
-            with lsp.open_file(completions_filepath):
+            with lsp.file_opened(completions_filepath):
                 deleted_text = lsp.delete_text_between_positions(
                     completions_filepath,
                     Position(line=74, character=17),
-                    Position(line=77, character=4)
+                    Position(line=77, character=4),
                 )
-                assert deleted_text == """newServerNode()
+                assert (
+                    deleted_text
+                    == """newServerNode()
                 .withIpPort(arr[0], Integer.parseInt(arr[1]))
                 .build();
     """
-                completions = await lsp.request_completions(completions_filepath, 74, 17)
-                completions = [completion["completionText"] for completion in completions]
-                assert set(completions) == set(['class', 'newServerNode'])
+                )
+                completions = await lsp.request_completions(
+                    completions_filepath, 74, 17
+                )
+                completions = [
+                    completion["completionText"] for completion in completions
+                ]
+                assert set(completions) == set(["class", "newServerNode"])
 
-            with lsp.open_file(completions_filepath):
+            with lsp.file_opened(completions_filepath):
                 deleted_text = lsp.delete_text_between_positions(
                     completions_filepath,
                     Position(line=75, character=17),
-                    Position(line=77, character=4)
+                    Position(line=77, character=4),
                 )
-                assert deleted_text == """withIpPort(arr[0], Integer.parseInt(arr[1]))
+                assert (
+                    deleted_text
+                    == """withIpPort(arr[0], Integer.parseInt(arr[1]))
                 .build();
     """
-                completions = await lsp.request_completions(completions_filepath, 75, 17)
-                completions = [completion["completionText"] for completion in completions]
-                assert set(completions) == set(['build', 'equals', 'getClass', 'hashCode', 'toString', 'withIpPort', 'notify', 'notifyAll', 'wait', 'wait', 'wait', 'newServerNode'])
+                )
+                completions = await lsp.request_completions(
+                    completions_filepath, 75, 17
+                )
+                completions = [
+                    completion["completionText"] for completion in completions
+                ]
+                assert set(completions) == set(
+                    [
+                        "build",
+                        "equals",
+                        "getClass",
+                        "hashCode",
+                        "toString",
+                        "withIpPort",
+                        "notify",
+                        "notifyAll",
+                        "wait",
+                        "wait",
+                        "wait",
+                        "newServerNode",
+                    ]
+                )
 
             completions_filepath = "src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkBuffer.java"
-            with lsp.open_file(completions_filepath):
+            with lsp.file_opened(completions_filepath):
                 deleted_text = lsp.delete_text_between_positions(
                     completions_filepath,
                     Position(line=136, character=23),
-                    Position(line=143, character=8)
+                    Position(line=143, character=8),
                 )
-                assert deleted_text == """ClickHouseSinkBuffer(
+                assert (
+                    deleted_text
+                    == """ClickHouseSinkBuffer(
                     this.writer,
                     this.writeTimeout,
                     this.batchSize,
@@ -203,9 +291,17 @@ async def test_multilspy_java_clickhouse_highlevel_sinker_modified():
                     this.futures
             );
         """
-                completions = await lsp.request_completions(completions_filepath, 136, 23)
-                completions = [completion["completionText"] for completion in completions if completion["kind"] == CompletionItemKind.Constructor]
-                assert completions == ['ClickHouseSinkBuffer']
+                )
+                completions = await lsp.request_completions(
+                    completions_filepath, 136, 23
+                )
+                completions = [
+                    completion["completionText"]
+                    for completion in completions
+                    if completion["kind"] == CompletionItemKind.Constructor
+                ]
+                assert completions == ["ClickHouseSinkBuffer"]
+
 
 @pytest.mark.asyncio
 async def test_multilspy_java_example_repo_document_symbols() -> None:
@@ -219,11 +315,13 @@ async def test_multilspy_java_example_repo_document_symbols() -> None:
         "repo_commit": "f3762fd55a457ff9c6b0bf3b266de2b203a766ab",
     }
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = LanguageServer.create(
+            context.config, context.logger, context.source_directory
+        )
 
         # All the communication with the language server must be performed inside the context manager
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
-        async with lsp.start_server():
+        async with lsp.running():
             filepath = str(PurePath("Person.java"))
             result = await lsp.request_document_symbols(filepath)
 
@@ -346,6 +444,7 @@ async def test_multilspy_java_example_repo_document_symbols() -> None:
                 None,
             )
 
+
 @pytest.mark.asyncio
 async def test_multilspy_java_clickhouse_highlevel_sinker_modified_hover():
     """
@@ -355,28 +454,33 @@ async def test_multilspy_java_clickhouse_highlevel_sinker_modified_hover():
     params = {
         "code_language": code_language,
         "repo_url": "https://github.com/LakshyAAAgrawal/clickhouse-highlevel-sinker/",
-        "repo_commit": "5775fd7a67e7b60998e1614cf44a8a1fc3190ab0"
+        "repo_commit": "5775fd7a67e7b60998e1614cf44a8a1fc3190ab0",
     }
 
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = LanguageServer.create(
+            context.config, context.logger, context.source_directory
+        )
         # All the communication with the language server must be performed inside the context manager
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
         # The context manager is an asynchronous context manager, so it must be used with async with.
-        async with lsp.start_server():
+        async with lsp.running():
             filepath = "src/main/java/com/xlvchao/clickhouse/datasource/ClickHouseDataSource.java"
-            with lsp.open_file(filepath):
+            with lsp.file_opened(filepath):
                 deleted_text = lsp.delete_text_between_positions(
                     filepath,
                     Position(line=75, character=28),
-                    Position(line=77, character=4)
+                    Position(line=77, character=4),
                 )
-                assert deleted_text == """arr[0], Integer.parseInt(arr[1]))
+                assert (
+                    deleted_text
+                    == """arr[0], Integer.parseInt(arr[1]))
                 .build();
     """
+                )
 
                 lsp.insert_text_at_position(filepath, 75, 28, ")")
-                
+
                 result = await lsp.request_hover(filepath, 75, 27)
 
                 assert result == {
@@ -385,6 +489,7 @@ async def test_multilspy_java_clickhouse_highlevel_sinker_modified_hover():
                         "value": "Builder com.xlvchao.clickhouse.datasource.ServerNode.Builder.withIpPort(String ip, Integer port)",
                     }
                 }
+
 
 @pytest.mark.asyncio
 async def test_multilspy_java_clickhouse_highlevel_sinker_modified_completion_method_signature():
@@ -395,26 +500,31 @@ async def test_multilspy_java_clickhouse_highlevel_sinker_modified_completion_me
     params = {
         "code_language": code_language,
         "repo_url": "https://github.com/LakshyAAAgrawal/clickhouse-highlevel-sinker/",
-        "repo_commit": "5775fd7a67e7b60998e1614cf44a8a1fc3190ab0"
+        "repo_commit": "5775fd7a67e7b60998e1614cf44a8a1fc3190ab0",
     }
 
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = LanguageServer.create(
+            context.config, context.logger, context.source_directory
+        )
         # All the communication with the language server must be performed inside the context manager
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
         # The context manager is an asynchronous context manager, so it must be used with async with.
-        async with lsp.start_server():
+        async with lsp.running():
             filepath = "src/main/java/com/xlvchao/clickhouse/datasource/ClickHouseDataSource.java"
-            with lsp.open_file(filepath):
+            with lsp.file_opened(filepath):
                 deleted_text = lsp.delete_text_between_positions(
                     filepath,
                     Position(line=75, character=27),
-                    Position(line=77, character=4)
+                    Position(line=77, character=4),
                 )
-                assert deleted_text == """(arr[0], Integer.parseInt(arr[1]))
+                assert (
+                    deleted_text
+                    == """(arr[0], Integer.parseInt(arr[1]))
                 .build();
     """
-                
+                )
+
                 result = await lsp.request_completions(filepath, 75, 27)
 
                 assert result == [

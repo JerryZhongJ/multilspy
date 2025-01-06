@@ -5,7 +5,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "multilspy"
-version = "0.0.9"
+version = "0.0.10"
 authors = [
   { name="Lakshya A Agrawal", email="lakshya.aagrawal@gmail.com" },
 ]
@@ -27,8 +27,8 @@ classifiers = [
 
 dependencies = [
   "jedi-language-server==0.41.1",
-  "pydantic==1.10.5",
-  "requests==2.32.3"
+  "pydantic>=2.10.4",
+  "requests>=2.32.3"
 ]
 
 [project.urls]

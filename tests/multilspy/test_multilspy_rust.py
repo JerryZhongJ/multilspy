@@ -3,15 +3,17 @@ This file contains tests for running the Rust Language Server: rust-analyzer
 """
 
 import unittest
+from pathlib import PurePath
+
 import pytest
 
 from multilspy import LanguageServer
 from multilspy.multilspy_config import Language
-from multilspy.multilspy_types import Position, CompletionItemKind
+from multilspy.multilspy_types import CompletionItemKind, Position
 from tests.test_utils import create_test_context
-from pathlib import PurePath
 
 pytest_plugins = ("pytest_asyncio",)
+
 
 @pytest.mark.asyncio
 async def test_multilspy_rust_carbonyl():
@@ -22,16 +24,20 @@ async def test_multilspy_rust_carbonyl():
     params = {
         "code_language": code_language,
         "repo_url": "https://github.com/fathyb/carbonyl/",
-        "repo_commit": "ab80a276b1bd1c2c8dcefc8f248415dfc61dc2bf"
+        "repo_commit": "ab80a276b1bd1c2c8dcefc8f248415dfc61dc2bf",
     }
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = LanguageServer.create(
+            context.config, context.logger, context.source_directory
+        )
 
         # All the communication with the language server must be performed inside the context manager
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
         # The context manager is an asynchronous context manager, so it must be used with async with.
-        async with lsp.start_server():
-            result = await lsp.request_definition(str(PurePath("src/browser/bridge.rs")), 132, 18)
+        async with lsp.running():
+            result = await lsp.request_definition(
+                str(PurePath("src/browser/bridge.rs")), 132, 18
+            )
 
             assert isinstance(result, list)
             assert len(result) == 1
@@ -42,7 +48,9 @@ async def test_multilspy_rust_carbonyl():
                 "end": {"line": 43, "character": 19},
             }
 
-            result = await lsp.request_references(str(PurePath("src/input/tty.rs")), 43, 15)
+            result = await lsp.request_references(
+                str(PurePath("src/input/tty.rs")), 43, 15
+            )
 
             assert isinstance(result, list)
             assert len(result) == 2
@@ -72,6 +80,7 @@ async def test_multilspy_rust_carbonyl():
                 ],
             )
 
+
 @pytest.mark.asyncio
 async def test_multilspy_rust_completions_mediaplayer() -> None:
     """
@@ -85,14 +94,18 @@ async def test_multilspy_rust_completions_mediaplayer() -> None:
     }
 
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = LanguageServer.create(
+            context.config, context.logger, context.source_directory
+        )
         filepath = "src/playlist.rs"
         # All the communication with the language server must be performed inside the context manager
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
-        async with lsp.start_server():
-            with lsp.open_file(filepath):
+        async with lsp.running():
+            with lsp.file_opened(filepath):
                 deleted_text = lsp.delete_text_between_positions(
-                    filepath, Position(line=10, character=40), Position(line=12, character=4)
+                    filepath,
+                    Position(line=10, character=40),
+                    Position(line=12, character=4),
                 )
                 assert (
                     deleted_text
@@ -101,11 +114,24 @@ async def test_multilspy_rust_completions_mediaplayer() -> None:
     """
                 )
 
-                response = await lsp.request_completions(filepath, 10, 40, allow_incomplete=True)
+                response = await lsp.request_completions(
+                    filepath, 10, 40, allow_incomplete=True
+                )
 
-                response = [item for item in response if item['kind'] != CompletionItemKind.Snippet]
+                response = [
+                    item
+                    for item in response
+                    if item["kind"] != CompletionItemKind.Snippet
+                ]
 
                 for item in response:
-                    item['completionText'] = item['completionText'][:item['completionText'].find('(')]
-                
-                assert set([item['completionText'] for item in response]) == {'reset', 'into', 'try_into', 'prepare'}
+                    item["completionText"] = item["completionText"][
+                        : item["completionText"].find("(")
+                    ]
+
+                assert set([item["completionText"] for item in response]) == {
+                    "reset",
+                    "into",
+                    "try_into",
+                    "prepare",
+                }

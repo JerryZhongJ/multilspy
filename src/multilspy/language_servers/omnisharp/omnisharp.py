@@ -8,16 +8,20 @@ import logging
 import os
 import pathlib
 import stat
-from contextlib import asynccontextmanager
-from typing import AsyncIterator, Iterable
+from typing import Iterable
 
-from multilspy.multilspy_logger import MultilspyLogger
 from multilspy.language_server import LanguageServer
-from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
 from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
+from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
 from multilspy.multilspy_config import MultilspyConfig
 from multilspy.multilspy_exceptions import MultilspyException
-from multilspy.multilspy_utils import FileUtils, PlatformUtils, PlatformId, DotnetVersion
+from multilspy.multilspy_logger import MultilspyLogger
+from multilspy.multilspy_utils import (
+    DotnetVersion,
+    FileUtils,
+    PlatformId,
+    PlatformUtils,
+)
 
 
 def breadth_first_file_scan(root) -> Iterable[str]:
@@ -58,11 +62,18 @@ class OmniSharp(LanguageServer):
     Provides C# specific instantiation of the LanguageServer class. Contains various configurations and settings specific to C#.
     """
 
-    def __init__(self, config: MultilspyConfig, logger: MultilspyLogger, repository_root_path: str):
+    def __init__(
+        self,
+        config: MultilspyConfig,
+        logger: MultilspyLogger,
+        repository_root_path: str,
+    ):
         """
         Creates an OmniSharp instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
-        omnisharp_executable_path, dll_path = self.setupRuntimeDependencies(logger, config)
+        omnisharp_executable_path, dll_path = self.setupRuntimeDependencies(
+            logger, config
+        )
 
         slnfilename = find_least_depth_sln_file(repository_root_path)
         if slnfilename is None:
@@ -102,7 +113,11 @@ class OmniSharp(LanguageServer):
             ]
         )
         super().__init__(
-            config, logger, repository_root_path, ProcessLaunchInfo(cmd=cmd, cwd=repository_root_path), "csharp"
+            config,
+            logger,
+            repository_root_path,
+            ProcessLaunchInfo(cmd=cmd, cwd=repository_root_path),
+            "csharp",
         )
 
         self.definition_available = asyncio.Event()
@@ -112,7 +127,9 @@ class OmniSharp(LanguageServer):
         """
         Returns the initialize params for the Omnisharp Language Server.
         """
-        with open(os.path.join(os.path.dirname(__file__), "initialize_params.json"), "r") as f:
+        with open(
+            os.path.join(os.path.dirname(__file__), "initialize_params.json"), "r"
+        ) as f:
             d = json.load(f)
 
         del d["_description"]
@@ -125,21 +142,27 @@ class OmniSharp(LanguageServer):
         d["rootUri"] = pathlib.Path(repository_absolute_path).as_uri()
 
         assert d["workspaceFolders"][0]["uri"] == "$uri"
-        d["workspaceFolders"][0]["uri"] = pathlib.Path(repository_absolute_path).as_uri()
+        d["workspaceFolders"][0]["uri"] = pathlib.Path(
+            repository_absolute_path
+        ).as_uri()
 
         assert d["workspaceFolders"][0]["name"] == "$name"
         d["workspaceFolders"][0]["name"] = os.path.basename(repository_absolute_path)
 
         return d
 
-    def setupRuntimeDependencies(self, logger: MultilspyLogger, config: MultilspyConfig) -> tuple[str, str]:
+    def setupRuntimeDependencies(
+        self, logger: MultilspyLogger, config: MultilspyConfig
+    ) -> tuple[str, str]:
         """
         Setup runtime dependencies for OmniSharp.
         """
         platform_id = PlatformUtils.get_platform_id()
         dotnet_version = PlatformUtils.get_dotnet_version()
 
-        with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
+        with open(
+            os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r"
+        ) as f:
             d = json.load(f)
             del d["_description"]
 
@@ -150,7 +173,7 @@ class OmniSharp(LanguageServer):
         assert dotnet_version in [
             DotnetVersion.V6,
             DotnetVersion.V7,
-            DotnetVersion.V8
+            DotnetVersion.V8,
         ], "Only dotnet version 6 and 7 are supported in multilspy at the moment"
 
         # TODO: Do away with this assumption
@@ -160,12 +183,15 @@ class OmniSharp(LanguageServer):
 
         runtime_dependencies = d["runtimeDependencies"]
         runtime_dependencies = [
-            dependency for dependency in runtime_dependencies if dependency["platformId"] == platform_id.value
+            dependency
+            for dependency in runtime_dependencies
+            if dependency["platformId"] == platform_id.value
         ]
         runtime_dependencies = [
             dependency
             for dependency in runtime_dependencies
-            if not ("dotnet_version" in dependency) or dependency["dotnet_version"] == dotnet_version.value
+            if not ("dotnet_version" in dependency)
+            or dependency["dotnet_version"] == dotnet_version.value
         ]
         assert len(runtime_dependencies) == 2
         runtime_dependencies = {
@@ -176,21 +202,33 @@ class OmniSharp(LanguageServer):
         assert "OmniSharp" in runtime_dependencies
         assert "RazorOmnisharp" in runtime_dependencies
 
-        omnisharp_ls_dir = os.path.join(os.path.dirname(__file__), "static", "OmniSharp")
+        omnisharp_ls_dir = os.path.join(
+            os.path.dirname(__file__), "static", "OmniSharp"
+        )
         if not os.path.exists(omnisharp_ls_dir):
             os.makedirs(omnisharp_ls_dir)
             FileUtils.download_and_extract_archive(
-                logger, runtime_dependencies["OmniSharp"]["url"], omnisharp_ls_dir, "zip"
+                logger,
+                runtime_dependencies["OmniSharp"]["url"],
+                omnisharp_ls_dir,
+                "zip",
             )
-        omnisharp_executable_path = os.path.join(omnisharp_ls_dir, runtime_dependencies["OmniSharp"]["binaryName"])
+        omnisharp_executable_path = os.path.join(
+            omnisharp_ls_dir, runtime_dependencies["OmniSharp"]["binaryName"]
+        )
         assert os.path.exists(omnisharp_executable_path)
         os.chmod(omnisharp_executable_path, stat.S_IEXEC)
 
-        razor_omnisharp_ls_dir = os.path.join(os.path.dirname(__file__), "static", "RazorOmnisharp")
+        razor_omnisharp_ls_dir = os.path.join(
+            os.path.dirname(__file__), "static", "RazorOmnisharp"
+        )
         if not os.path.exists(razor_omnisharp_ls_dir):
             os.makedirs(razor_omnisharp_ls_dir)
             FileUtils.download_and_extract_archive(
-                logger, runtime_dependencies["RazorOmnisharp"]["url"], razor_omnisharp_ls_dir, "zip"
+                logger,
+                runtime_dependencies["RazorOmnisharp"]["url"],
+                razor_omnisharp_ls_dir,
+                "zip",
             )
         razor_omnisharp_dll_path = os.path.join(
             razor_omnisharp_ls_dir, runtime_dependencies["RazorOmnisharp"]["dll_path"]
@@ -199,20 +237,7 @@ class OmniSharp(LanguageServer):
 
         return omnisharp_executable_path, razor_omnisharp_dll_path
 
-    @asynccontextmanager
-    async def start_server(self) -> AsyncIterator["OmniSharp"]:
-        """
-        Starts the Omnisharp Language Server, waits for the server to be ready and yields the LanguageServer instance.
-
-        Usage:
-        ```
-        async with lsp.start_server():
-            # LanguageServer has been initialized and ready to serve requests
-            await lsp.request_definition(...)
-            await lsp.request_references(...)
-            # Shutdown the LanguageServer on exit from scope
-        # LanguageServer has been shutdown
-        """
+    async def start(self):
 
         async def register_capability_handler(params):
             assert "registrations" in params
@@ -360,44 +385,50 @@ class OmniSharp(LanguageServer):
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("language/status", lang_status_handler)
         self.server.on_notification("window/logMessage", window_log_message)
-        self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
+        self.server.on_request(
+            "workspace/executeClientCommand", execute_client_command_handler
+        )
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_notification("language/actionableNotification", do_nothing)
-        self.server.on_notification("experimental/serverStatus", check_experimental_status)
-        self.server.on_request("workspace/configuration", workspace_configuration_handler)
+        self.server.on_notification(
+            "experimental/serverStatus", check_experimental_status
+        )
+        self.server.on_request(
+            "workspace/configuration", workspace_configuration_handler
+        )
 
-        async with super().start_server():
-            self.logger.log("Starting OmniSharp server process", logging.INFO)
-            await self.server.start()
-            initialize_params = self._get_initialize_params(self.repository_root_path)
+        self.logger.log("Starting OmniSharp server process", logging.INFO)
+        await self.server.start()
+        initialize_params = self._get_initialize_params(self.repository_root_path)
 
-            self.logger.log(
-                "Sending initialize request from LSP client to LSP server and awaiting response",
-                logging.INFO,
+        self.logger.log(
+            "Sending initialize request from LSP client to LSP server and awaiting response",
+            logging.INFO,
+        )
+        init_response = await self.server.send.initialize(initialize_params)
+        self.server.notify.initialized({})
+        with open(
+            os.path.join(
+                os.path.dirname(__file__), "workspace_did_change_configuration.json"
+            ),
+            "r",
+        ) as f:
+            self.server.notify.workspace_did_change_configuration(
+                {"settings": json.load(f)}
             )
-            init_response = await self.server.send.initialize(initialize_params)
-            self.server.notify.initialized({})
-            with open(os.path.join(os.path.dirname(__file__), "workspace_did_change_configuration.json"), "r") as f:
-                self.server.notify.workspace_did_change_configuration({
-                    "settings": json.load(f)
-                })
-            assert "capabilities" in init_response
-            if (
-                "definitionProvider" in init_response["capabilities"]
-                and init_response["capabilities"]["definitionProvider"]
-            ):
-                self.definition_available.set()
-            if (
-                "referencesProvider" in init_response["capabilities"]
-                and init_response["capabilities"]["referencesProvider"]
-            ):
-                self.references_available.set()
+        assert "capabilities" in init_response
+        if (
+            "definitionProvider" in init_response["capabilities"]
+            and init_response["capabilities"]["definitionProvider"]
+        ):
+            self.definition_available.set()
+        if (
+            "referencesProvider" in init_response["capabilities"]
+            and init_response["capabilities"]["referencesProvider"]
+        ):
+            self.references_available.set()
 
-            await self.definition_available.wait()
-            await self.references_available.wait()
-
-            yield self
-
-            await self.server.shutdown()
-            await self.server.stop()
+        await self.definition_available.wait()
+        await self.references_available.wait()
+        await super().start()

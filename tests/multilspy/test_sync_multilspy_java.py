@@ -3,9 +3,11 @@ This file contains tests for running the Java Language Server: Eclipse JDT.LS
 """
 
 from pathlib import PurePath
+
 from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import Language
 from tests.test_utils import create_test_context
+
 
 def test_multilspy_java_clickhouse_highlevel_sinker() -> None:
     """
@@ -15,22 +17,30 @@ def test_multilspy_java_clickhouse_highlevel_sinker() -> None:
     params = {
         "code_language": code_language,
         "repo_url": "https://github.com/Index103000/clickhouse-highlevel-sinker/",
-        "repo_commit": "ee31d278918fe5e64669a6840c4d8fb53889e573"
+        "repo_commit": "ee31d278918fe5e64669a6840c4d8fb53889e573",
     }
     with create_test_context(params) as context:
-        lsp = SyncLanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = SyncLanguageServer.create(
+            context.config, context.logger, context.source_directory
+        )
 
         # All the communication with the language server must be performed inside the context manager
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
-        with lsp.start_server():
-            filepath = str(PurePath("src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkManager.java"))
+        with lsp.running():
+            filepath = str(
+                PurePath(
+                    "src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkManager.java"
+                )
+            )
             result = lsp.request_definition(filepath, 44, 59)
 
             assert isinstance(result, list)
             assert len(result) == 1
             item = result[0]
             assert item["relativePath"] == str(
-                PurePath("src/main/java/com/xlvchao/clickhouse/component/ScheduledCheckerAndCleaner.java")
+                PurePath(
+                    "src/main/java/com/xlvchao/clickhouse/component/ScheduledCheckerAndCleaner.java"
+                )
             )
             assert item["range"] == {
                 "start": {"line": 22, "character": 11},
@@ -70,7 +80,9 @@ def test_multilspy_java_clickhouse_highlevel_sinker() -> None:
             assert result == [
                 {
                     "relativePath": str(
-                        PurePath("src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkManager.java")
+                        PurePath(
+                            "src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkManager.java"
+                        )
                     ),
                     "range": {
                         "start": {"line": 75, "character": 66},
@@ -79,7 +91,9 @@ def test_multilspy_java_clickhouse_highlevel_sinker() -> None:
                 },
                 {
                     "relativePath": str(
-                        PurePath("src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkManager.java")
+                        PurePath(
+                            "src/main/java/com/xlvchao/clickhouse/component/ClickHouseSinkManager.java"
+                        )
                     ),
                     "range": {
                         "start": {"line": 71, "character": 12},
