@@ -199,6 +199,10 @@ class LanguageServerHandler:
         self.task_counter = 0
         self.loop = None
 
+    def __del__(self):
+        if self.process:
+            self.process.kill()
+
     async def start(self) -> None:
         """
         Starts the language server process and creates a task to continuously read from its stdout to handle communications

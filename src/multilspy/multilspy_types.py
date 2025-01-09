@@ -12,7 +12,7 @@ from typing_extensions import Dict, List, Union
 
 URI = str
 DocumentUri = str
-Uint = int
+Uint = NonNegativeInt
 RegExp = str
 
 
@@ -45,12 +45,12 @@ class Position(BaseModel):
 
     @since 3.17.0 - support for negotiated position encoding."""
 
-    line: NonNegativeInt
+    line: Uint
     """ Line position in a document (zero-based).
 
     If a line number is greater than the number of lines in a document, it defaults back to the number of lines in the document.
     If a line number is negative, it defaults to 0. """
-    character: NonNegativeInt
+    character: Uint
     """ Character offset on a line in a document (zero-based).
 
     The meaning of this offset is determined by the negotiated
@@ -133,7 +133,7 @@ class CompletionItem(BaseModel):
     """ The kind of this completion item. Based of the kind
     an icon is chosen by the editor. """
 
-    detail: Optional[str]
+    detail: Optional[str] = None
     """ A human-readable string with additional information
     about this item, like type or symbol information. """
 
@@ -182,11 +182,11 @@ class UnifiedSymbolInformation(BaseModel):
     """Represents information about programming constructs like variables, classes,
     interfaces etc."""
 
-    deprecated: Optional[bool]
+    deprecated: Optional[bool] = None
     """ Indicates if this symbol is deprecated.
 
     @deprecated Use tags instead """
-    location: Optional[Location]
+    location: Optional[Location] = None
     """ The location of this symbol. The location's range is used by a tool
     to reveal the location in the editor. If the symbol is selected in the
     tool the range's start information is used to position the cursor. So
@@ -200,24 +200,24 @@ class UnifiedSymbolInformation(BaseModel):
     """ The name of this symbol. """
     kind: SymbolKind
     """ The kind of this symbol. """
-    tags: Optional[List[SymbolTag]]
+    tags: Optional[List[SymbolTag]] = None
     """ Tags for this symbol.
 
     @since 3.16.0 """
-    containerName: Optional[str]
+    containerName: Optional[str] = None
     """ The name of the symbol containing this symbol. This information is for
     user interface purposes (e.g. to render a qualifier in the user interface
     if necessary). It can't be used to re-infer a hierarchy for the document
     symbols. """
 
-    detail: Optional[str]
+    detail: Optional[str] = None
     """ More detail for this symbol, e.g the signature of a function. """
 
-    range: Optional[Range]
+    range: Optional[Range] = None
     """ The range enclosing this symbol not including leading/trailing whitespace but everything else
     like comments. This information is typically used to determine if the clients cursor is
     inside the symbol to reveal in the symbol in the UI. """
-    selectionRange: Optional[Range]
+    selectionRange: Optional[Range] = None
     """ The range that should be selected and revealed when this symbol is being picked, e.g the name of a function.
     Must be contained by the `range`. """
 
@@ -293,6 +293,6 @@ class Hover(BaseModel):
 
     contents: Union["MarkupContent", "MarkedString", List["MarkedString"]]
     """ The hover's content """
-    range: Optional["Range"]
+    range: Optional["Range"] = None
     """ An optional range inside the text document that is used to
     visualize the hover, e.g. by changing the background color. """

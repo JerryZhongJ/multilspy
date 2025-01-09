@@ -32,17 +32,17 @@ SOFTWARE.
 from enum import Enum, IntEnum, IntFlag
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field, NonNegativeInt
+from pydantic import BaseModel, Field, JsonValue, NonNegativeInt
 
 URI = str
 DocumentUri = str
-# NonNegativeInt = int
+Uint = NonNegativeInt
 RegExp = str
 StringDict = Dict[str, Any]
 PayloadLike = Optional[List[StringDict] | StringDict]
 
 
-class SemanticTokenTypes(Enum):
+class SemanticTokenTypes(str, Enum):
     """A set of predefined token types. This set is not fixed
     an clients can specify additional token types via the
     corresponding client capabilities.
@@ -77,7 +77,7 @@ class SemanticTokenTypes(Enum):
     """ @since 3.17.0 """
 
 
-class SemanticTokenModifiers(Enum):
+class SemanticTokenModifiers(str, Enum):
     """A set of predefined token modifiers. This set is not fixed
     an clients can specify additional token types via the
     corresponding client capabilities.
@@ -96,7 +96,7 @@ class SemanticTokenModifiers(Enum):
     DefaultLibrary = "defaultLibrary"
 
 
-class DocumentDiagnosticReportKind(Enum):
+class DocumentDiagnosticReportKind(str, Enum):
     """The document diagnostic report kinds.
 
     @since 3.17.0"""
@@ -151,7 +151,7 @@ class LSPErrorCodes(IntEnum):
     the cancel. """
 
 
-class FoldingRangeKind(Enum):
+class FoldingRangeKind(str, Enum):
     """A set of predefined range kinds."""
 
     Comment = "comment"
@@ -202,7 +202,7 @@ class SymbolTag(IntEnum):
     """ Render a symbol as obsolete, usually using a strike-out. """
 
 
-class UniquenessLevel(Enum):
+class UniquenessLevel(str, Enum):
     """Moniker uniqueness level to define scope of the moniker.
 
     @since 3.16.0"""
@@ -219,7 +219,7 @@ class UniquenessLevel(Enum):
     """ The moniker is globally unique """
 
 
-class MonikerKind(Enum):
+class MonikerKind(str, Enum):
     """The moniker kind.
 
     @since 3.16.0"""
@@ -374,7 +374,7 @@ class DocumentHighlightKind(IntEnum):
     """ Write-access of a symbol, like writing to a variable. """
 
 
-class CodeActionKind(Enum):
+class CodeActionKind(str, Enum):
     """A set of predefined code action kinds"""
 
     Empty = ""
@@ -428,7 +428,7 @@ class CodeActionKind(Enum):
     @since 3.15.0 """
 
 
-class TraceValues(Enum):
+class TraceValues(str, Enum):
     Off = "off"
     """ Turn tracing off. """
     Messages = "messages"
@@ -437,7 +437,7 @@ class TraceValues(Enum):
     """ Verbose message tracing. """
 
 
-class MarkupKind(Enum):
+class MarkupKind(str, Enum):
     """Describes the content type that a client supports in various
     result literals like `Hover`, `ParameterInfo` or `CompletionItem`.
 
@@ -450,7 +450,7 @@ class MarkupKind(Enum):
     """ Markdown is supported as a content format """
 
 
-class PositionEncodingKind(Enum):
+class PositionEncodingKind(str, Enum):
     """A set of predefined position encoding kinds.
 
     @since 3.17.0"""
@@ -559,7 +559,7 @@ class CodeActionTriggerKind(IntEnum):
     also be triggered when file content changes. """
 
 
-class FileOperationPatternKind(Enum):
+class FileOperationPatternKind(str, Enum):
     """A pattern kind describing if a glob pattern matches a file a folder or
     both.
 
@@ -582,7 +582,7 @@ class NotebookCellKind(IntEnum):
     """ A code-cell is source code. """
 
 
-class ResourceOperationKind(Enum):
+class ResourceOperationKind(str, Enum):
     Create = "create"
     """ Supports creating new files and folders. """
     Rename = "rename"
@@ -591,7 +591,7 @@ class ResourceOperationKind(Enum):
     """ Supports deleting existing files and folders. """
 
 
-class FailureHandlingKind(Enum):
+class FailureHandlingKind(str, Enum):
     Abort = "abort"
     """ Applying the workspace change is simply aborted if one of the changes provided
     fails. All operations executed before the failing operation stay executed. """
@@ -613,7 +613,7 @@ class PrepareSupportDefaultBehavior(IntEnum):
     according the to language's syntax rule. """
 
 
-class TokenFormat(Enum):
+class TokenFormat(str, Enum):
     Relative = "relative"
 
 
@@ -631,11 +631,11 @@ DefinitionLink = "LocationLink"
 Provides additional metadata over normal {@link Location location} definitions, including the range of
 the defining symbol """
 
-LSPArray = List["LSPAny"]
+LSPArray = List[JsonValue]
 """ LSP arrays.
 @since 3.17.0 """
 
-LSPAny = Union["LSPObject", "LSPArray", str, int, NonNegativeInt, float, bool, None]
+LSPAny = JsonValue
 """ The LSP any type.
 Please note that strictly speaking a property with the value `undefined`
 can't be converted into JSON preserving the property name. However for
@@ -727,7 +727,7 @@ a notebook cell document.
 
 @since 3.17.0 - proposed support for NotebookCellTextDocumentFilter. """
 
-LSPObject = Dict[str, "LSPAny"]
+LSPObject = Dict[str, JsonValue]
 """ LSP object definition.
 @since 3.17.0 """
 
@@ -790,9 +790,9 @@ class ImplementationParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -809,7 +809,7 @@ class ImplementationRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -819,9 +819,9 @@ class TypeDefinitionParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -830,7 +830,7 @@ class TypeDefinitionRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -863,9 +863,9 @@ class DocumentColorParams(Params):
 
     textDocument: "TextDocumentIdentifier"
     """ The text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -883,7 +883,7 @@ class DocumentColorRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -897,9 +897,9 @@ class ColorPresentationParams(Params):
     """ The color to request presentations for. """
     range: "Range"
     """ The range where the color would be inserted. Serves as a context. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -909,17 +909,17 @@ class ColorPresentation(BaseModel):
     """ The label of this color presentation. It will be shown on the color
     picker header. By default this is also the text that is inserted when selecting
     this color presentation. """
-    textEdit: Optional["TextEdit"]
+    textEdit: Optional["TextEdit"] = None
     """ An {@link TextEdit edit} which is applied to a document when selecting
     this presentation for the color.  When `falsy` the {@link ColorPresentation.label label}
     is used. """
-    additionalTextEdits: Optional[List["TextEdit"]]
+    additionalTextEdits: Optional[List["TextEdit"]] = None
     """ An optional array of additional {@link TextEdit text edits} that are applied when
     selecting this color presentation. Edits must not overlap with the main {@link ColorPresentation.textEdit edit} nor with themselves. """
 
 
 class WorkDoneProgressOptions(BaseModel):
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class TextDocumentRegistrationOptions(BaseModel):
@@ -935,9 +935,9 @@ class FoldingRangeParams(Params):
 
     textDocument: "TextDocumentIdentifier"
     """ The text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -947,21 +947,21 @@ class FoldingRange(BaseModel):
     than the number of lines in the document. Clients are free to ignore invalid ranges.
     """
 
-    startLine: NonNegativeInt
+    startLine: Uint
     """ The zero-based start line of the range to fold. The folded area starts after the line's last character.
     To be valid, the end must be zero or larger and smaller than the number of lines in the document. """
-    startCharacter: Optional[NonNegativeInt]
+    startCharacter: Optional[Uint] = None
     """ The zero-based character offset from where the folded range starts. If not defined, defaults to the length of the start line. """
-    endLine: NonNegativeInt
+    endLine: Uint
     """ The zero-based end line of the range to fold. The folded area ends with the line's last character.
     To be valid, the end must be zero or larger and smaller than the number of lines in the document. """
-    endCharacter: Optional[NonNegativeInt]
+    endCharacter: Optional[Uint] = None
     """ The zero-based character offset before the folded range ends. If not defined, defaults to the length of the end line. """
-    kind: Optional["FoldingRangeKind"]
+    kind: Optional["FoldingRangeKind"] = None
     """ Describes the kind of the folding range such as `comment' or 'region'. The kind
     is used to categorize folding ranges and used by commands like 'Fold all comments'.
     See {@link FoldingRangeKind} for an enumeration of standardized kinds. """
-    collapsedText: Optional[str]
+    collapsedText: Optional[str] = None
     """ The text that the client should show when the specified range is
     collapsed. If not defined or not supported by the client, a default
     will be chosen by the client.
@@ -973,7 +973,7 @@ class FoldingRangeRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -983,9 +983,9 @@ class DeclarationParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -994,7 +994,7 @@ class DeclarationRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -1006,9 +1006,9 @@ class SelectionRangeParams(Params):
     """ The text document. """
     positions: List["Position"]
     """ The positions inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -1019,7 +1019,7 @@ class SelectionRange(BaseModel):
 
     range: "Range"
     """ The {@link Range range} of this selection range. """
-    parent: Optional["SelectionRange"]
+    parent: Optional["SelectionRange"] = None
     """ The parent selection range containing this range. Therefore `parent.range` must contain `this.range`. """
 
 
@@ -1027,7 +1027,7 @@ class SelectionRangeRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -1051,7 +1051,7 @@ class CallHierarchyPrepareParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
@@ -1065,9 +1065,9 @@ class CallHierarchyItem(BaseModel):
     """ The name of this item. """
     kind: "SymbolKind"
     """ The kind of this item. """
-    tags: Optional[List["SymbolTag"]]
+    tags: Optional[List["SymbolTag"]] = None
     """ Tags for this item. """
-    detail: Optional[str]
+    detail: Optional[str] = None
     """ More detail for this item, e.g. the signature of a function. """
     uri: "DocumentUri"
     """ The resource identifier of this item. """
@@ -1076,7 +1076,7 @@ class CallHierarchyItem(BaseModel):
     selectionRange: "Range"
     """ The range that should be selected and revealed when this symbol is being picked, e.g. the name of a function.
     Must be contained by the {@link CallHierarchyItem.range `range`}. """
-    data: Optional["LSPAny"]
+    data: Optional["LSPAny"] = None
     """ A data entry field that is preserved between a call hierarchy prepare and
     incoming calls or outgoing calls requests. """
 
@@ -1089,7 +1089,7 @@ class CallHierarchyRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -1100,16 +1100,17 @@ class CallHierarchyIncomingCallsParams(Params):
     @since 3.16.0"""
 
     item: "CallHierarchyItem"
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
 
 class CallHierarchyIncomingCall(BaseModel):
+
     # The item that makes the call.
-    _from: "CallHierarchyItem" = Field(alias="from")
+    from_: "CallHierarchyItem" = Field(alias="from")
     # The ranges at which the calls appear. This is relative to the caller
     # denoted by {@link CallHierarchyIncomingCall.from `this.from`}.
     fromRanges: List["Range"]
@@ -1126,9 +1127,9 @@ class CallHierarchyOutgoingCallsParams(Params):
     @since 3.16.0"""
 
     item: "CallHierarchyItem"
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -1151,9 +1152,9 @@ class SemanticTokensParams(Params):
 
     textDocument: "TextDocumentIdentifier"
     """ The text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -1161,19 +1162,19 @@ class SemanticTokensParams(Params):
 class SemanticTokens(BaseModel):
     """@since 3.16.0"""
 
-    resultId: Optional[str]
+    resultId: Optional[str] = None
     """ An optional result id. If provided and clients support delta updating
     the client will include the result id in the next semantic token request.
     A server can then instead of computing all semantic tokens again simply
     send a delta. """
-    data: List[NonNegativeInt]
+    data: List[Uint]
     """ The actual tokens. """
 
 
 class SemanticTokensPartialResult(BaseModel):
     """@since 3.16.0"""
 
-    data: List[NonNegativeInt]
+    data: List[Uint]
 
 
 class SemanticTokensRegistrationOptions(BaseModel):
@@ -1184,12 +1185,12 @@ class SemanticTokensRegistrationOptions(BaseModel):
     the document selector provided on the client side will be used. """
     legend: "SemanticTokensLegend"
     """ The legend used by the server """
-    range: Optional[Union[bool, dict]]
+    range: Optional[Union[bool, dict]] = None
     """ Server supports providing semantic tokens for a specific range
     of a document. """
-    full: Optional[Union[bool, "__SemanticTokensOptions_full_Type_1"]]
+    full: Optional[Union[bool, "__SemanticTokensOptions_full_Type_1"]] = None
     """ Server supports providing semantic tokens for a full document. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -1202,9 +1203,9 @@ class SemanticTokensDeltaParams(Params):
     previousResultId: str
     """ The result id of a previous response. The result Id can either point to a full response
     or a delta response depending on what was received last. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -1212,7 +1213,7 @@ class SemanticTokensDeltaParams(Params):
 class SemanticTokensDelta(BaseModel):
     """@since 3.16.0"""
 
-    resultId: Optional[str]
+    resultId: Optional[str] = None
     edits: List["SemanticTokensEdit"]
     """ The semantic token edits to transform a previous result into a new result. """
 
@@ -1230,9 +1231,9 @@ class SemanticTokensRangeParams(Params):
     """ The text document. """
     range: "Range"
     """ The range the semantic tokens are requested for. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -1244,16 +1245,16 @@ class ShowDocumentParams(Params):
 
     uri: "URI"
     """ The document uri to show. """
-    external: Optional[bool]
+    external: Optional[bool] = None
     """ Indicates to show the resource in an external program.
     To show for example `https://code.visualstudio.com/`
     in the default WEB browser set `external` to `true`. """
-    takeFocus: Optional[bool]
+    takeFocus: Optional[bool] = None
     """ An optional property to indicate whether the editor
     showing the document should take focus or not.
     Clients might ignore this property if an external
     program is started. """
-    selection: Optional["Range"]
+    selection: Optional["Range"] = None
     """ An optional selection range if the document is a text
     document. Clients might ignore the property if an
     external program is started or the file is not a text
@@ -1274,7 +1275,7 @@ class LinkedEditingRangeParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
@@ -1286,7 +1287,7 @@ class LinkedEditingRanges(BaseModel):
     ranges: List["Range"]
     """ A list of ranges that can be edited together. The ranges must have
     identical length and contain identical text content. The ranges cannot overlap. """
-    wordPattern: Optional[str]
+    wordPattern: Optional[str] = None
     """ An optional word pattern (regular expression) that describes valid contents for
     the given ranges. If no pattern is provided, the client configuration's word
     pattern will be used. """
@@ -1296,7 +1297,7 @@ class LinkedEditingRangeRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -1325,11 +1326,11 @@ class WorkspaceEdit(BaseModel):
     cause failure of the operation. How the client recovers from the failure is described by
     the client capability: `workspace.workspaceEdit.failureHandling`"""
 
-    changes: Optional[Dict["DocumentUri", List["TextEdit"]]]
+    changes: Optional[Dict["DocumentUri", List["TextEdit"]]] = None
     """ Holds changes to existing resources. """
     documentChanges: Optional[
         List[Union["TextDocumentEdit", "CreateFile", "RenameFile", "DeleteFile"]]
-    ]
+    ] = None
     """ Depending on the client capability `workspace.workspaceEdit.resourceOperations` document changes
     are either an array of `TextDocumentEdit`s to express changes to n different text documents
     where each text document edit addresses a specific version of a text document. Or it can contain
@@ -1340,7 +1341,9 @@ class WorkspaceEdit(BaseModel):
 
     If a client neither supports `documentChanges` nor `workspace.workspaceEdit.resourceOperations` then
     only plain `TextEdit`s using the `changes` property are supported. """
-    changeAnnotations: Optional[Dict["ChangeAnnotationIdentifier", "ChangeAnnotation"]]
+    changeAnnotations: Optional[
+        Dict["ChangeAnnotationIdentifier", "ChangeAnnotation"]
+    ] = None
     """ A map of change annotations that can be referenced in `AnnotatedTextEdit`s or create, rename and
     delete file / folder operations.
 
@@ -1384,9 +1387,9 @@ class MonikerParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -1403,7 +1406,7 @@ class Moniker(BaseModel):
     schema owners are allowed to define the structure if they want. """
     unique: "UniquenessLevel"
     """ The scope in which the moniker is unique """
-    kind: Optional["MonikerKind"]
+    kind: Optional["MonikerKind"] = None
     """ The moniker kind if known. """
 
 
@@ -1422,7 +1425,7 @@ class TypeHierarchyPrepareParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
@@ -1433,9 +1436,9 @@ class TypeHierarchyItem(BaseModel):
     """ The name of this item. """
     kind: "SymbolKind"
     """ The kind of this item. """
-    tags: Optional[List["SymbolTag"]]
+    tags: Optional[List["SymbolTag"]] = None
     """ Tags for this item. """
-    detail: Optional[str]
+    detail: Optional[str] = None
     """ More detail for this item, e.g. the signature of a function. """
     uri: "DocumentUri"
     """ The resource identifier of this item. """
@@ -1446,7 +1449,7 @@ class TypeHierarchyItem(BaseModel):
     """ The range that should be selected and revealed when this symbol is being
     picked, e.g. the name of a function. Must be contained by the
     {@link TypeHierarchyItem.range `range`}. """
-    data: Optional["LSPAny"]
+    data: Optional["LSPAny"] = None
     """ A data entry field that is preserved between a type hierarchy prepare and
     supertypes or subtypes requests. It could also be used to identify the
     type hierarchy in the server, helping improve the performance on
@@ -1461,7 +1464,7 @@ class TypeHierarchyRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -1472,9 +1475,9 @@ class TypeHierarchySupertypesParams(Params):
     @since 3.17.0"""
 
     item: "TypeHierarchyItem"
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -1485,9 +1488,9 @@ class TypeHierarchySubtypesParams(Params):
     @since 3.17.0"""
 
     item: "TypeHierarchyItem"
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -1504,7 +1507,7 @@ class InlineValueParams(Params):
     context: "InlineValueContext"
     """ Additional information about the context in which inline values were
     requested. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
@@ -1516,7 +1519,7 @@ class InlineValueRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -1530,7 +1533,7 @@ class InlayHintParams(Params):
     """ The text document. """
     range: "Range"
     """ The document range for which inlay hints should be computed. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
@@ -1546,30 +1549,30 @@ class InlayHint(Params):
     InlayHintLabelPart label parts.
 
     *Note* that neither the string nor the label part can be empty. """
-    kind: Optional["InlayHintKind"]
+    kind: Optional["InlayHintKind"] = None
     """ The kind of this hint. Can be omitted in which case the client
     should fall back to a reasonable default. """
-    textEdits: Optional[List["TextEdit"]]
+    textEdits: Optional[List["TextEdit"]] = None
     """ Optional text edits that are performed when accepting this inlay hint.
 
     *Note* that edits are expected to change the document so that the inlay
     hint (or its nearest variant) is now part of the document and the inlay
     hint itself is now obsolete. """
-    tooltip: Optional[Union[str, "MarkupContent"]]
+    tooltip: Optional[Union[str, "MarkupContent"]] = None
     """ The tooltip text when you hover over this item. """
-    paddingLeft: Optional[bool]
+    paddingLeft: Optional[bool] = None
     """ Render padding before the hint.
 
     Note: Padding should use the editor's background color, not the
     background color of the hint itself. That means padding can be used
     to visually align/separate an inlay hint. """
-    paddingRight: Optional[bool]
+    paddingRight: Optional[bool] = None
     """ Render padding after the hint.
 
     Note: Padding should use the editor's background color, not the
     background color of the hint itself. That means padding can be used
     to visually align/separate an inlay hint. """
-    data: Optional["LSPAny"]
+    data: Optional["LSPAny"] = None
     """ A data entry field that is preserved on an inlay hint between
     a `textDocument/inlayHint` and a `inlayHint/resolve` request. """
 
@@ -1579,13 +1582,13 @@ class InlayHintRegistrationOptions(BaseModel):
 
     @since 3.17.0"""
 
-    resolveProvider: Optional[bool]
+    resolveProvider: Optional[bool] = None
     """ The server provides support to resolve additional
     information for an inlay hint item. """
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -1597,13 +1600,13 @@ class DocumentDiagnosticParams(Params):
 
     textDocument: "TextDocumentIdentifier"
     """ The text document. """
-    identifier: Optional[str]
+    identifier: Optional[str] = None
     """ The additional identifier  provided during registration. """
-    previousResultId: Optional[str]
+    previousResultId: Optional[str] = None
     """ The result id of a previous response if provided. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -1635,7 +1638,7 @@ class DiagnosticRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    identifier: Optional[str]
+    identifier: Optional[str] = None
     """ An optional identifier under which the diagnostics are
     managed by the client. """
     interFileDependencies: bool
@@ -1645,7 +1648,7 @@ class DiagnosticRegistrationOptions(BaseModel):
     most programming languages and typically uncommon for linters. """
     workspaceDiagnostics: bool
     """ The server provides support for workspace diagnostics as well. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
@@ -1655,14 +1658,14 @@ class WorkspaceDiagnosticParams(Params):
 
     @since 3.17.0"""
 
-    identifier: Optional[str]
+    identifier: Optional[str] = None
     """ The additional identifier provided during registration. """
     previousResultIds: List["PreviousResultId"]
     """ The currently known diagnostic reports with their
     previous result ids. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -1751,17 +1754,17 @@ class UnregistrationParams(Params):
 
 
 class InitializeParams(Params):
-    processId: Union[int, None]
+    processId: Optional[int]
     """ The process Id of the parent process that started
     the server.
 
     Is `null` if the process has not been started by another process.
     If the parent process is not alive then the server should exit. """
-    clientInfo: Optional["___InitializeParams_clientInfo_Type_1"]
+    clientInfo: Optional["___InitializeParams_clientInfo_Type_1"] = None
     """ Information about the client
 
     @since 3.15.0 """
-    locale: Optional[str]
+    locale: Optional[str] = None
     """ The locale the client is currently showing the user interface
     in. This must not necessarily be the locale of the operating
     system.
@@ -1770,7 +1773,7 @@ class InitializeParams(Params):
     (See https://en.wikipedia.org/wiki/IETF_language_tag)
 
     @since 3.16.0 """
-    rootPath: Optional[Union[str, None]]
+    rootPath: Optional[Optional[str]] = None
     """ The rootPath of the workspace. Is null
     if no folder is open.
 
@@ -1783,11 +1786,11 @@ class InitializeParams(Params):
     @deprecated in favour of workspaceFolders. """
     capabilities: "ClientCapabilities"
     """ The capabilities provided by the client (editor or tool) """
-    initializationOptions: LSPAny
+    initializationOptions: Optional["LSPAny"] = None
     """ User provided initialization options. """
-    trace: Optional["TraceValues"]
+    trace: Optional["TraceValues"] = None
     """ The initial trace setting. If omitted trace is disabled ('off'). """
-    workspaceFolders: Optional[List["WorkspaceFolder"]]
+    workspaceFolders: Optional[Optional[List["WorkspaceFolder"]]] = None
     """ The workspace folders configured in the client when the server starts.
 
     This property is only available if the client supports workspace folders.
@@ -1802,7 +1805,7 @@ class InitializeResult(BaseModel):
 
     capabilities: "ServerCapabilities"
     """ The capabilities the language server provides. """
-    serverInfo: Optional["__InitializeResult_serverInfo_Type_1"]
+    serverInfo: Optional["__InitializeResult_serverInfo_Type_1"] = None
     """ Information about the server.
 
     @since 3.15.0 """
@@ -1831,7 +1834,7 @@ class DidChangeConfigurationParams(Params):
 
 
 class DidChangeConfigurationRegistrationOptions(BaseModel):
-    section: Optional[Union[str, List[str]]]
+    section: Optional[Union[str, List[str]]] = None
 
 
 class ShowMessageParams(Params):
@@ -1848,7 +1851,7 @@ class ShowMessageRequestParams(Params):
     """ The message type. See {@link MessageType} """
     message: str
     """ The actual message. """
-    actions: Optional[List["MessageActionItem"]]
+    actions: Optional[List["MessageActionItem"]] = None
     """ The message action items to present. """
 
 
@@ -1916,7 +1919,7 @@ class DidSaveTextDocumentParams(Params):
 
     textDocument: "TextDocumentIdentifier"
     """ The document that was saved. """
-    text: Optional[str]
+    text: Optional[str] = None
     """ Optional the content when saved. Depends on the includeText value
     when the save notification was requested. """
 
@@ -1927,7 +1930,7 @@ class TextDocumentSaveRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    includeText: Optional[bool]
+    includeText: Optional[bool] = None
     """ The client is supposed to include the content on save. """
 
 
@@ -1970,7 +1973,7 @@ class PublishDiagnosticsParams(Params):
 
     uri: "DocumentUri"
     """ The URI for which diagnostic information is reported. """
-    version: Optional[int]
+    version: Optional[int] = None
     """ Optional the version number of the document the diagnostics are published for.
 
     @since 3.15.0 """
@@ -1981,16 +1984,16 @@ class PublishDiagnosticsParams(Params):
 class CompletionParams(Params):
     """Completion parameters"""
 
-    context: Optional["CompletionContext"]
+    context: Optional["CompletionContext"] = None
     """ The completion context. This is only available it the client specifies
     to send this using the client capability `textDocument.completion.contextSupport === true` """
     textDocument: "TextDocumentIdentifier"
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -2007,40 +2010,40 @@ class CompletionItem(Params):
 
     If label details are provided the label itself should
     be an unqualified name of the completion item. """
-    labelDetails: Optional["CompletionItemLabelDetails"]
+    labelDetails: Optional["CompletionItemLabelDetails"] = None
     """ Additional details for the label
 
     @since 3.17.0 """
-    kind: Optional["CompletionItemKind"]
+    kind: Optional["CompletionItemKind"] = None
     """ The kind of this completion item. Based of the kind
     an icon is chosen by the editor. """
-    tags: Optional[List["CompletionItemTag"]]
+    tags: Optional[List["CompletionItemTag"]] = None
     """ Tags for this completion item.
 
     @since 3.15.0 """
-    detail: Optional[str]
+    detail: Optional[str] = None
     """ A human-readable string with additional information
     about this item, like type or symbol information. """
-    documentation: Optional[Union[str, "MarkupContent"]]
+    documentation: Optional[Union[str, "MarkupContent"]] = None
     """ A human-readable string that represents a doc-comment. """
-    deprecated: Optional[bool]
+    deprecated: Optional[bool] = None
     """ Indicates if this item is deprecated.
     @deprecated Use `tags` instead. """
-    preselect: Optional[bool]
+    preselect: Optional[bool] = None
     """ Select this item when showing.
 
     *Note* that only one completion item can be selected and that the
     tool / client decides which item that is. The rule is that the *first*
     item of those that match best is selected. """
-    sortText: Optional[str]
+    sortText: Optional[str] = None
     """ A string that should be used when comparing this item
     with other items. When `falsy` the {@link CompletionItem.label label}
     is used. """
-    filterText: Optional[str]
+    filterText: Optional[str] = None
     """ A string that should be used when filtering a set of
     completion items. When `falsy` the {@link CompletionItem.label label}
     is used. """
-    insertText: Optional[str]
+    insertText: Optional[str] = None
     """ A string that should be inserted into a document when selecting
     this completion. When `falsy` the {@link CompletionItem.label label}
     is used.
@@ -2052,20 +2055,20 @@ class CompletionItem(Params):
     `console` is provided it will only insert `sole`. Therefore it is
     recommended to use `textEdit` instead since it avoids additional client
     side interpretation. """
-    insertTextFormat: Optional["InsertTextFormat"]
+    insertTextFormat: Optional["InsertTextFormat"] = None
     """ The format of the insert text. The format applies to both the
     `insertText` property and the `newText` property of a provided
     `textEdit`. If omitted defaults to `InsertTextFormat.PlainText`.
 
     Please note that the insertTextFormat doesn't apply to
     `additionalTextEdits`. """
-    insertTextMode: Optional["InsertTextMode"]
+    insertTextMode: Optional["InsertTextMode"] = None
     """ How whitespace and indentation is handled during completion
     item insertion. If not provided the clients default value depends on
     the `textDocument.completion.insertTextMode` client capability.
 
     @since 3.16.0 """
-    textEdit: Optional["TextEdit | InsertReplaceEdit"]
+    textEdit: Optional[Union["TextEdit", "InsertReplaceEdit"]] = None
     """ An {@link TextEdit edit} which is applied to a document when selecting
     this completion. When an edit is provided the value of
     {@link CompletionItem.insertText insertText} is ignored.
@@ -2086,7 +2089,7 @@ class CompletionItem(Params):
     contained and starting at the same position.
 
     @since 3.16.0 additional type `InsertReplaceEdit` """
-    textEditText: Optional[str]
+    textEditText: Optional[str] = None
     """ The edit text used if the completion item is part of a CompletionList and
     CompletionList defines an item default for the text edit range.
 
@@ -2097,7 +2100,7 @@ class CompletionItem(Params):
     property is used as a text.
 
     @since 3.17.0 """
-    additionalTextEdits: Optional[List["TextEdit"]]
+    additionalTextEdits: Optional[List["TextEdit"]] = None
     """ An optional array of additional {@link TextEdit text edits} that are applied when
     selecting this completion. Edits must not overlap (including the same insert position)
     with the main {@link CompletionItem.textEdit edit} nor with themselves.
@@ -2105,15 +2108,15 @@ class CompletionItem(Params):
     Additional text edits should be used to change text unrelated to the current cursor position
     (for example adding an import statement at the top of the file if the completion item will
     insert an unqualified type). """
-    commitCharacters: Optional[List[str]]
+    commitCharacters: Optional[List[str]] = None
     """ An optional set of characters that when pressed while this completion is active will accept it first and
     then type that character. *Note* that all commit characters should have `length=1` and that superfluous
     characters will be ignored. """
-    command: Optional["Command"]
+    command: Optional["Command"] = None
     """ An optional {@link Command command} that is executed *after* inserting this completion. *Note* that
     additional modifications to the current document should be described with the
     {@link CompletionItem.additionalTextEdits additionalTextEdits}-property. """
-    data: Optional["LSPAny"]
+    data: Optional["LSPAny"] = None
     """ A data entry field that is preserved on a completion item between a
     {@link CompletionRequest} and a {@link CompletionResolveRequest}. """
 
@@ -2127,7 +2130,7 @@ class CompletionList(BaseModel):
 
     Recomputed lists have all their items replaced (not appended) in the
     incomplete completion sessions. """
-    itemDefaults: Optional["__CompletionList_itemDefaults_Type_1"]
+    itemDefaults: Optional["__CompletionList_itemDefaults_Type_1"] = None
     """ In many cases the items of an actual completion result share the same
     value for properties like `commitCharacters` or the range of a text
     edit. A completion list can therefore define item defaults which will
@@ -2151,7 +2154,7 @@ class CompletionRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    triggerCharacters: Optional[List[str]]
+    triggerCharacters: Optional[List[str]] = None
     """ Most tools trigger completion request automatically without explicitly requesting
     it using a keyboard shortcut (e.g. Ctrl+Space). Typically they do so when the user
     starts to type an identifier. For example if the user types `c` in a JavaScript file
@@ -2160,7 +2163,7 @@ class CompletionRegistrationOptions(BaseModel):
 
     If code complete should automatically be trigger on characters not being valid inside
     an identifier (for example `.` in JavaScript) list them in `triggerCharacters`. """
-    allCommitCharacters: Optional[List[str]]
+    allCommitCharacters: Optional[List[str]] = None
     """ The list of all possible characters that commit a completion. This field can be used
     if clients don't support individual commit characters per completion item. See
     `ClientCapabilities.textDocument.completion.completionItem.commitCharactersSupport`
@@ -2169,10 +2172,10 @@ class CompletionRegistrationOptions(BaseModel):
     completion item the ones on the completion item win.
 
     @since 3.2.0 """
-    resolveProvider: Optional[bool]
+    resolveProvider: Optional[bool] = None
     """ The server provides support to resolve additional
     information for a completion item. """
-    completionItem: Optional["__CompletionOptions_completionItem_Type_1"]
+    completionItem: Optional["__CompletionOptions_completionItem_Type_1"] = None
     """ The server supports the following `CompletionItem` specific
     capabilities.
 
@@ -2186,7 +2189,7 @@ class HoverParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
@@ -2195,7 +2198,7 @@ class Hover(BaseModel):
 
     contents: Union["MarkupContent", "MarkedString", List["MarkedString"]]
     """ The hover's content """
-    range: Optional["Range"]
+    range: Optional["Range"] = None
     """ An optional range inside the text document that is used to
     visualize the hover, e.g. by changing the background color. """
 
@@ -2211,7 +2214,7 @@ class HoverRegistrationOptions(BaseModel):
 class SignatureHelpParams(Params):
     """Parameters for a {@link SignatureHelpRequest}."""
 
-    context: Optional["SignatureHelpContext"]
+    context: Optional["SignatureHelpContext"] = None
     """ The signature help context. This is only available if the client specifies
     to send this using the client capability `textDocument.signatureHelp.contextSupport === true`
 
@@ -2220,7 +2223,7 @@ class SignatureHelpParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
@@ -2231,7 +2234,7 @@ class SignatureHelp(BaseModel):
 
     signatures: List["SignatureInformation"]
     """ One or more signatures. """
-    activeSignature: Optional[NonNegativeInt]
+    activeSignature: Optional[Uint] = None
     """ The active signature. If omitted or the value lies outside the
     range of `signatures` the value defaults to zero or is ignored if
     the `SignatureHelp` has no signatures.
@@ -2241,7 +2244,7 @@ class SignatureHelp(BaseModel):
 
     In future version of the protocol this property might become
     mandatory to better express this. """
-    activeParameter: Optional[NonNegativeInt]
+    activeParameter: Optional[Uint] = None
     """ The active parameter of the active signature. If omitted or the value
     lies outside the range of `signatures[activeSignature].parameters`
     defaults to 0 if the active signature has parameters. If
@@ -2257,9 +2260,9 @@ class SignatureHelpRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    triggerCharacters: Optional[List[str]]
+    triggerCharacters: Optional[List[str]] = None
     """ List of characters that trigger signature help automatically. """
-    retriggerCharacters: Optional[List[str]]
+    retriggerCharacters: Optional[List[str]] = None
     """ List of characters that re-trigger signature help.
 
     These trigger characters are only active when signature help is already showing. All trigger characters
@@ -2275,9 +2278,9 @@ class DefinitionParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -2298,9 +2301,9 @@ class ReferenceParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -2320,9 +2323,9 @@ class DocumentHighlightParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -2334,7 +2337,7 @@ class DocumentHighlight(BaseModel):
 
     range: "Range"
     """ The range this highlight applies to. """
-    kind: Optional["DocumentHighlightKind"]
+    kind: Optional["DocumentHighlightKind"] = None
     """ The highlight kind, default is {@link DocumentHighlightKind.Text text}. """
 
 
@@ -2351,9 +2354,9 @@ class DocumentSymbolParams(Params):
 
     textDocument: "TextDocumentIdentifier"
     """ The text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -2362,7 +2365,7 @@ class SymbolInformation(BaseModel):
     """Represents information about programming constructs like variables, classes,
     interfaces etc."""
 
-    deprecated: Optional[bool]
+    deprecated: Optional[bool] = None
     """ Indicates if this symbol is deprecated.
 
     @deprecated Use tags instead """
@@ -2380,11 +2383,11 @@ class SymbolInformation(BaseModel):
     """ The name of this symbol. """
     kind: "SymbolKind"
     """ The kind of this symbol. """
-    tags: Optional[List["SymbolTag"]]
+    tags: Optional[List["SymbolTag"]] = None
     """ Tags for this symbol.
 
     @since 3.16.0 """
-    containerName: Optional[str]
+    containerName: Optional[str] = None
     """ The name of the symbol containing this symbol. This information is for
     user interface purposes (e.g. to render a qualifier in the user interface
     if necessary). It can't be used to re-infer a hierarchy for the document
@@ -2400,15 +2403,15 @@ class DocumentSymbol(BaseModel):
     name: str
     """ The name of this symbol. Will be displayed in the user interface and therefore must not be
     an empty string or a string only consisting of white spaces. """
-    detail: Optional[str]
+    detail: Optional[str] = None
     """ More detail for this symbol, e.g the signature of a function. """
     kind: "SymbolKind"
     """ The kind of this symbol. """
-    tags: Optional[List["SymbolTag"]]
+    tags: Optional[List["SymbolTag"]] = None
     """ Tags for this document symbol.
 
     @since 3.16.0 """
-    deprecated: Optional[bool]
+    deprecated: Optional[bool] = None
     """ Indicates if this symbol is deprecated.
 
     @deprecated Use tags instead """
@@ -2419,7 +2422,7 @@ class DocumentSymbol(BaseModel):
     selectionRange: "Range"
     """ The range that should be selected and revealed when this symbol is being picked, e.g the name of a function.
     Must be contained by the `range`. """
-    children: Optional[List["DocumentSymbol"]]
+    children: Optional[List["DocumentSymbol"]] = None
     """ Children of this symbol, e.g. properties of a class. """
 
 
@@ -2429,7 +2432,7 @@ class DocumentSymbolRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    label: Optional[str]
+    label: Optional[str] = None
     """ A human-readable string that is shown when multiple outlines trees
     are shown for the same document.
 
@@ -2445,9 +2448,9 @@ class CodeActionParams(Params):
     """ The range for which the command was invoked. """
     context: "CodeActionContext"
     """ Context carrying additional information. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -2462,7 +2465,7 @@ class Command(BaseModel):
     """ Title of the command, like `save`. """
     command: str
     """ The identifier of the actual command handler. """
-    arguments: Optional[List["LSPAny"]]
+    arguments: Optional[List["LSPAny"]] = None
     """ Arguments that the command handler should be
     invoked with. """
 
@@ -2476,13 +2479,13 @@ class CodeAction(Params):
 
     title: str
     """ A short, human-readable, title for this code action. """
-    kind: Optional["CodeActionKind"]
+    kind: Optional["CodeActionKind"] = None
     """ The kind of the code action.
 
     Used to filter code actions. """
-    diagnostics: Optional[List["Diagnostic"]]
+    diagnostics: Optional[List["Diagnostic"]] = None
     """ The diagnostics that this code action resolves. """
-    isPreferred: Optional[bool]
+    isPreferred: Optional[bool] = None
     """ Marks this as a preferred action. Preferred actions are used by the `auto fix` command and can be targeted
     by keybindings.
 
@@ -2490,7 +2493,7 @@ class CodeAction(Params):
     A refactoring should be marked preferred if it is the most reasonable choice of actions to take.
 
     @since 3.15.0 """
-    disabled: Optional["__CodeAction_disabled_Type_1"]
+    disabled: Optional["__CodeAction_disabled_Type_1"] = None
     """ Marks that the code action cannot currently be applied.
 
     Clients should follow the following guidelines regarding disabled code actions:
@@ -2506,13 +2509,13 @@ class CodeAction(Params):
         error message with `reason` in the editor.
 
     @since 3.16.0 """
-    edit: Optional["WorkspaceEdit"]
+    edit: Optional["WorkspaceEdit"] = None
     """ The workspace edit this code action performs. """
-    command: Optional["Command"]
+    command: Optional["Command"] = None
     """ A command this code action executes. If a code action
     provides an edit and a command, first the edit is
     executed and then the command. """
-    data: Optional["LSPAny"]
+    data: Optional["LSPAny"] = None
     """ A data entry field that is preserved on a code action between
     a `textDocument/codeAction` and a `codeAction/resolve` request.
 
@@ -2525,12 +2528,12 @@ class CodeActionRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    codeActionKinds: Optional[List["CodeActionKind"]]
+    codeActionKinds: Optional[List["CodeActionKind"]] = None
     """ CodeActionKinds that this server may return.
 
     The list of kinds may be generic, such as `CodeActionKind.Refactor`, or the server
     may list out every specific kind they provide. """
-    resolveProvider: Optional[bool]
+    resolveProvider: Optional[bool] = None
     """ The server provides support to resolve additional
     information for a code action.
 
@@ -2543,9 +2546,9 @@ class WorkspaceSymbolParams(Params):
     query: str
     """ A query string to filter symbols by. Clients may send an empty
     string here to request all symbols. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -2563,18 +2566,18 @@ class WorkspaceSymbol(Params):
     capability `workspace.symbol.resolveSupport`.
 
     See SymbolInformation#location for more details. """
-    data: Optional["LSPAny"]
+    data: Optional["LSPAny"] = None
     """ A data entry field that is preserved on a workspace symbol between a
     workspace symbol request and a workspace symbol resolve request. """
     name: str
     """ The name of this symbol. """
     kind: "SymbolKind"
     """ The kind of this symbol. """
-    tags: Optional[List["SymbolTag"]]
+    tags: Optional[List["SymbolTag"]] = None
     """ Tags for this symbol.
 
     @since 3.16.0 """
-    containerName: Optional[str]
+    containerName: Optional[str] = None
     """ The name of the symbol containing this symbol. This information is for
     user interface purposes (e.g. to render a qualifier in the user interface
     if necessary). It can't be used to re-infer a hierarchy for the document
@@ -2584,7 +2587,7 @@ class WorkspaceSymbol(Params):
 class WorkspaceSymbolRegistrationOptions(BaseModel):
     """Registration options for a {@link WorkspaceSymbolRequest}."""
 
-    resolveProvider: Optional[bool]
+    resolveProvider: Optional[bool] = None
     """ The server provides support to resolve additional
     information for a workspace symbol.
 
@@ -2596,9 +2599,9 @@ class CodeLensParams(Params):
 
     textDocument: "TextDocumentIdentifier"
     """ The document to request code lens for. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -2612,9 +2615,9 @@ class CodeLens(Params):
 
     range: "Range"
     """ The range in which this code lens is valid. Should only span a single line. """
-    command: Optional["Command"]
+    command: Optional["Command"] = None
     """ The command this code lens represents. """
-    data: Optional["LSPAny"]
+    data: Optional["LSPAny"] = None
     """ A data entry field that is preserved on a code lens item between
     a {@link CodeLensRequest} and a [CodeLensResolveRequest]
     (#CodeLensResolveRequest) """
@@ -2626,7 +2629,7 @@ class CodeLensRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    resolveProvider: Optional[bool]
+    resolveProvider: Optional[bool] = None
     """ Code lens has a resolve provider as well. """
 
 
@@ -2635,9 +2638,9 @@ class DocumentLinkParams(Params):
 
     textDocument: "TextDocumentIdentifier"
     """ The document to provide document links for. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -2648,9 +2651,9 @@ class DocumentLink(Params):
 
     range: "Range"
     """ The range this link applies to. """
-    target: Optional[str]
+    target: Optional[str] = None
     """ The uri this link points to. If missing a resolve request is sent later. """
-    tooltip: Optional[str]
+    tooltip: Optional[str] = None
     """ The tooltip text when you hover over this link.
 
     If a tooltip is provided, is will be displayed in a string that includes instructions on how to
@@ -2658,7 +2661,7 @@ class DocumentLink(Params):
     user settings, and localization.
 
     @since 3.15.0 """
-    data: Optional["LSPAny"]
+    data: Optional["LSPAny"] = None
     """ A data entry field that is preserved on a document link between a
     DocumentLinkRequest and a DocumentLinkResolveRequest. """
 
@@ -2669,7 +2672,7 @@ class DocumentLinkRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    resolveProvider: Optional[bool]
+    resolveProvider: Optional[bool] = None
     """ Document links have a resolve provider as well. """
 
 
@@ -2680,7 +2683,7 @@ class DocumentFormattingParams(Params):
     """ The document to format. """
     options: "FormattingOptions"
     """ The format options. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
@@ -2701,7 +2704,7 @@ class DocumentRangeFormattingParams(Params):
     """ The range to format """
     options: "FormattingOptions"
     """ The format options """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
@@ -2739,7 +2742,7 @@ class DocumentOnTypeFormattingRegistrationOptions(BaseModel):
     the document selector provided on the client side will be used. """
     firstTriggerCharacter: str
     """ A character on which formatting should be triggered, like `{`. """
-    moreTriggerCharacter: Optional[List[str]]
+    moreTriggerCharacter: Optional[List[str]] = None
     """ More trigger characters. """
 
 
@@ -2754,7 +2757,7 @@ class RenameParams(Params):
     """ The new name of the symbol. If the given name is not valid the
     request must return a {@link ResponseError} with an
     appropriate message set. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
@@ -2764,7 +2767,7 @@ class RenameRegistrationOptions(BaseModel):
     documentSelector: Optional["DocumentSelector"]
     """ A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used. """
-    prepareProvider: Optional[bool]
+    prepareProvider: Optional[bool] = None
     """ Renames should be checked and tested before being executed.
 
     @since version 3.12.0 """
@@ -2775,7 +2778,7 @@ class PrepareRenameParams(Params):
     """ The text document. """
     position: "Position"
     """ The position inside the text document. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
@@ -2784,9 +2787,9 @@ class ExecuteCommandParams(Params):
 
     command: str
     """ The identifier of the actual command handler. """
-    arguments: Optional[List["LSPAny"]]
+    arguments: Optional[List["LSPAny"]] = None
     """ Arguments that the command should be invoked with. """
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
@@ -2800,7 +2803,7 @@ class ExecuteCommandRegistrationOptions(BaseModel):
 class ApplyWorkspaceEditParams(Params):
     """The parameters passed via a apply workspace edit request."""
 
-    label: Optional[str]
+    label: Optional[str] = None
     """ An optional label of the workspace edit. This label is
     presented in the user interface for example on an undo
     stack to undo the workspace edit. """
@@ -2815,11 +2818,11 @@ class ApplyWorkspaceEditResult(BaseModel):
 
     applied: bool
     """ Indicates whether the edit was applied or not. """
-    failureReason: Optional[str]
+    failureReason: Optional[str] = None
     """ An optional textual description for why the edit was not applied.
     This may be used by the server for diagnostic logging or to provide
     a suitable error for a request that triggered the edit. """
-    failedChange: Optional[NonNegativeInt]
+    failedChange: Optional[Uint] = None
     """ Depending on the client's failure handling strategy `failedChange` might
     contain the index of the change that failed. This property is only available
     if the client signals a `failureHandlingStrategy` in its client capabilities. """
@@ -2832,17 +2835,17 @@ class WorkDoneProgressBegin(BaseModel):
     the kind of operation being performed.
 
     Examples: "Indexing" or "Linking dependencies". """
-    cancellable: Optional[bool]
+    cancellable: Optional[bool] = None
     """ Controls if a cancel button should show to allow the user to cancel the
     long running operation. Clients that don't support cancellation are allowed
     to ignore the setting. """
-    message: Optional[str]
+    message: Optional[str] = None
     """ Optional, more detailed associated progress message. Contains
     complementary information to the `title`.
 
     Examples: "3/25 files", "project/src/module2", "node_modules/some_dep".
     If unset, the previous progress message (if any) is still valid. """
-    percentage: Optional[NonNegativeInt]
+    percentage: Optional[Uint] = None
     """ Optional progress percentage to display (value 100 is considered 100%).
     If not provided infinite progress is assumed and clients are allowed
     to ignore the `percentage` value in subsequent in report notifications.
@@ -2853,18 +2856,18 @@ class WorkDoneProgressBegin(BaseModel):
 
 class WorkDoneProgressReport(BaseModel):
     kind: Literal["report"]
-    cancellable: Optional[bool]
+    cancellable: Optional[bool] = None
     """ Controls enablement state of a cancel button.
 
     Clients that don't support cancellation or don't support controlling the button's
     enablement state are allowed to ignore the property. """
-    message: Optional[str]
+    message: Optional[str] = None
     """ Optional, more detailed associated progress message. Contains
     complementary information to the `title`.
 
     Examples: "3/25 files", "project/src/module2", "node_modules/some_dep".
     If unset, the previous progress message (if any) is still valid. """
-    percentage: Optional[NonNegativeInt]
+    percentage: Optional[Uint] = None
     """ Optional progress percentage to display (value 100 is considered 100%).
     If not provided infinite progress is assumed and clients are allowed
     to ignore the `percentage` value in subsequent in report notifications.
@@ -2875,7 +2878,7 @@ class WorkDoneProgressReport(BaseModel):
 
 class WorkDoneProgressEnd(BaseModel):
     kind: Literal["end"]
-    message: Optional[str]
+    message: Optional[str] = None
     """ Optional, a final message indicating to for example indicate the outcome
     of the operation. """
 
@@ -2886,7 +2889,7 @@ class SetTraceParams(Params):
 
 class LogTraceParams(Params):
     message: str
-    verbose: Optional[str]
+    verbose: Optional[str] = None
 
 
 class CancelParams(Params):
@@ -2912,12 +2915,12 @@ class TextDocumentPositionParams(Params):
 
 
 class WorkDoneProgressParams(Params):
-    workDoneToken: Optional["ProgressToken"]
+    workDoneToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report work done progress. """
 
 
 class PartialResultParams(Params):
-    partialResultToken: Optional["ProgressToken"]
+    partialResultToken: Optional["ProgressToken"] = None
     """ An optional token that a server can use to report partial results (e.g. streaming) to
     the client. """
 
@@ -2926,7 +2929,7 @@ class LocationLink(BaseModel):
     """Represents the connection of two locations. Provides additional metadata over normal {@link Location locations},
     including an origin range."""
 
-    originSelectionRange: Optional["Range"]
+    originSelectionRange: Optional["Range"] = None
     """ Span of the origin of this link.
 
     Used as the underlined span for mouse interaction. Defaults to the word range at
@@ -2962,20 +2965,20 @@ class Range(BaseModel):
 
 
 class ImplementationOptions(BaseModel):
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class StaticRegistrationOptions(BaseModel):
     """Static registration options to be returned in the initialize
     request."""
 
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
 
 class TypeDefinitionOptions(BaseModel):
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class WorkspaceFoldersChangeEvent(BaseModel):
@@ -2988,9 +2991,9 @@ class WorkspaceFoldersChangeEvent(BaseModel):
 
 
 class ConfigurationItem(BaseModel):
-    scopeUri: Optional[str]
+    scopeUri: Optional[str] = None
     """ The scope to get the configuration section for. """
-    section: Optional[str]
+    section: Optional[str] = None
     """ The configuration section asked for. """
 
 
@@ -3015,15 +3018,15 @@ class Color(BaseModel):
 
 
 class DocumentColorOptions(BaseModel):
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class FoldingRangeOptions(BaseModel):
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class DeclarationOptions(BaseModel):
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class Position(BaseModel):
@@ -3055,12 +3058,12 @@ class Position(BaseModel):
 
     @since 3.17.0 - support for negotiated position encoding."""
 
-    line: NonNegativeInt
+    line: Uint
     """ Line position in a document (zero-based).
 
     If a line number is greater than the number of lines in a document, it defaults back to the number of lines in the document.
     If a line number is negative, it defaults to 0. """
-    character: NonNegativeInt
+    character: Uint
     """ Character offset on a line in a document (zero-based).
 
     The meaning of this offset is determined by the negotiated
@@ -3071,7 +3074,7 @@ class Position(BaseModel):
 
 
 class SelectionRangeOptions(BaseModel):
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class CallHierarchyOptions(BaseModel):
@@ -3079,7 +3082,7 @@ class CallHierarchyOptions(BaseModel):
 
     @since 3.16.0"""
 
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class SemanticTokensOptions(BaseModel):
@@ -3087,27 +3090,27 @@ class SemanticTokensOptions(BaseModel):
 
     legend: "SemanticTokensLegend"
     """ The legend used by the server """
-    range: Optional[Union[bool, dict]]
+    range: Optional[Union[bool, dict]] = None
     """ Server supports providing semantic tokens for a specific range
     of a document. """
-    full: Optional[Union[bool, "__SemanticTokensOptions_full_Type_2"]]
+    full: Optional[Union[bool, "__SemanticTokensOptions_full_Type_2"]] = None
     """ Server supports providing semantic tokens for a full document. """
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class SemanticTokensEdit(BaseModel):
     """@since 3.16.0"""
 
-    start: NonNegativeInt
+    start: Uint
     """ The start offset of the edit. """
-    deleteCount: NonNegativeInt
+    deleteCount: Uint
     """ The count of elements to remove. """
-    data: Optional[List[NonNegativeInt]]
+    data: Optional[List[Uint]] = None
     """ The elements to insert. """
 
 
 class LinkedEditingRangeOptions(BaseModel):
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class FileCreate(BaseModel):
@@ -3141,9 +3144,9 @@ class CreateFile(BaseModel):
     """ A create """
     uri: "DocumentUri"
     """ The resource to create. """
-    options: Optional["CreateFileOptions"]
+    options: Optional["CreateFileOptions"] = None
     """ Additional options """
-    annotationId: Optional["ChangeAnnotationIdentifier"]
+    annotationId: Optional["ChangeAnnotationIdentifier"] = None
     """ An optional annotation identifier describing the operation.
 
     @since 3.16.0 """
@@ -3158,9 +3161,9 @@ class RenameFile(BaseModel):
     """ The old (existing) location. """
     newUri: "DocumentUri"
     """ The new location. """
-    options: Optional["RenameFileOptions"]
+    options: Optional["RenameFileOptions"] = None
     """ Rename options. """
-    annotationId: Optional["ChangeAnnotationIdentifier"]
+    annotationId: Optional["ChangeAnnotationIdentifier"] = None
     """ An optional annotation identifier describing the operation.
 
     @since 3.16.0 """
@@ -3173,9 +3176,9 @@ class DeleteFile(BaseModel):
     """ A delete """
     uri: "DocumentUri"
     """ The file to delete. """
-    options: Optional["DeleteFileOptions"]
+    options: Optional["DeleteFileOptions"] = None
     """ Delete options. """
-    annotationId: Optional["ChangeAnnotationIdentifier"]
+    annotationId: Optional["ChangeAnnotationIdentifier"] = None
     """ An optional annotation identifier describing the operation.
 
     @since 3.16.0 """
@@ -3189,10 +3192,10 @@ class ChangeAnnotation(BaseModel):
     label: str
     """ A human-readable string describing the actual change. The string
     is rendered prominent in the user interface. """
-    needsConfirmation: Optional[bool]
+    needsConfirmation: Optional[bool] = None
     """ A flag which indicates that user confirmation is needed
     before applying the change. """
-    description: Optional[str]
+    description: Optional[str] = None
     """ A human-readable string which is rendered less prominent in
     the user interface. """
 
@@ -3203,7 +3206,7 @@ class FileOperationFilter(BaseModel):
 
     @since 3.16.0"""
 
-    scheme: Optional[str]
+    scheme: Optional[str] = None
     """ A Uri scheme like `file` or `untitled`. """
     pattern: "FileOperationPattern"
     """ The actual file operation pattern. """
@@ -3230,7 +3233,7 @@ class FileDelete(BaseModel):
 
 
 class MonikerOptions(BaseModel):
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class TypeHierarchyOptions(BaseModel):
@@ -3238,7 +3241,7 @@ class TypeHierarchyOptions(BaseModel):
 
     @since 3.17.0"""
 
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class InlineValueContext(BaseModel):
@@ -3272,7 +3275,7 @@ class InlineValueVariableLookup(BaseModel):
     range: "Range"
     """ The document range for which the inline value applies.
     The range is used to extract the variable name from the underlying document. """
-    variableName: Optional[str]
+    variableName: Optional[str] = None
     """ If specified the name of the variable to look up. """
     caseSensitiveLookup: bool
     """ How to perform the lookup. """
@@ -3288,7 +3291,7 @@ class InlineValueEvaluatableExpression(BaseModel):
     range: "Range"
     """ The document range for which the inline value applies.
     The range is used to extract the evaluatable expression from the underlying document. """
-    expression: Optional[str]
+    expression: Optional[str] = None
     """ If specified the expression overrides the extracted expression. """
 
 
@@ -3297,7 +3300,7 @@ class InlineValueOptions(BaseModel):
 
     @since 3.17.0"""
 
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class InlayHintLabelPart(BaseModel):
@@ -3308,11 +3311,11 @@ class InlayHintLabelPart(BaseModel):
 
     value: str
     """ The value of this label part. """
-    tooltip: Optional[Union[str, "MarkupContent"]]
+    tooltip: Optional[Union[str, "MarkupContent"]] = None
     """ The tooltip text when you hover over this label part. Depending on
     the client capability `inlayHint.resolveSupport` clients might resolve
     this property late using the resolve request. """
-    location: Optional["Location"]
+    location: Optional["Location"] = None
     """ An optional source code location that represents this
     label part.
 
@@ -3324,7 +3327,7 @@ class InlayHintLabelPart(BaseModel):
 
     Depending on the client capability `inlayHint.resolveSupport` clients
     might resolve this property late using the resolve request. """
-    command: Optional["Command"]
+    command: Optional["Command"] = None
     """ An optional command for this label part.
 
     Depending on the client capability `inlayHint.resolveSupport` clients
@@ -3366,10 +3369,10 @@ class InlayHintOptions(BaseModel):
 
     @since 3.17.0"""
 
-    resolveProvider: Optional[bool]
+    resolveProvider: Optional[bool] = None
     """ The server provides support to resolve additional
     information for an inlay hint item. """
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class RelatedFullDocumentDiagnosticReport(BaseModel):
@@ -3382,7 +3385,7 @@ class RelatedFullDocumentDiagnosticReport(BaseModel):
             "DocumentUri",
             Union["FullDocumentDiagnosticReport", "UnchangedDocumentDiagnosticReport"],
         ]
-    ]
+    ] = None
     """ Diagnostics of related documents. This information is useful
     in programming languages where code in a file A can generate
     diagnostics in a file B which A depends on. An example of
@@ -3392,7 +3395,7 @@ class RelatedFullDocumentDiagnosticReport(BaseModel):
     @since 3.17.0 """
     kind: Literal["full"]
     """ A full document diagnostic report. """
-    resultId: Optional[str]
+    resultId: Optional[str] = None
     """ An optional result id. If provided it will
     be sent on the next diagnostic request for the
     same document. """
@@ -3410,7 +3413,7 @@ class RelatedUnchangedDocumentDiagnosticReport(BaseModel):
             "DocumentUri",
             Union["FullDocumentDiagnosticReport", "UnchangedDocumentDiagnosticReport"],
         ]
-    ]
+    ] = None
     """ Diagnostics of related documents. This information is useful
     in programming languages where code in a file A can generate
     diagnostics in a file B which A depends on. An example of
@@ -3435,7 +3438,7 @@ class FullDocumentDiagnosticReport(BaseModel):
 
     kind: Literal["full"]
     """ A full document diagnostic report. """
-    resultId: Optional[str]
+    resultId: Optional[str] = None
     """ An optional result id. If provided it will
     be sent on the next diagnostic request for the
     same document. """
@@ -3464,7 +3467,7 @@ class DiagnosticOptions(BaseModel):
 
     @since 3.17.0"""
 
-    identifier: Optional[str]
+    identifier: Optional[str] = None
     """ An optional identifier under which the diagnostics are
     managed by the client. """
     interFileDependencies: bool
@@ -3474,7 +3477,7 @@ class DiagnosticOptions(BaseModel):
     most programming languages and typically uncommon for linters. """
     workspaceDiagnostics: bool
     """ The server provides support for workspace diagnostics as well. """
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class PreviousResultId(BaseModel):
@@ -3501,7 +3504,7 @@ class NotebookDocument(BaseModel):
     version: int
     """ The version number of this document (it will increase after each
     change, including undo/redo). """
-    metadata: Optional["LSPObject"]
+    metadata: Optional["LSPObject"] = None
     """ Additional metadata stored with the notebook
     document.
 
@@ -3541,11 +3544,11 @@ class NotebookDocumentChangeEvent(BaseModel):
 
     @since 3.17.0"""
 
-    metadata: Optional["LSPObject"]
+    metadata: Optional["LSPObject"] = None
     """ The changed meta data if any.
 
     Note: should always be an object literal (e.g. LSPObject) """
-    cells: Optional["__NotebookDocumentChangeEvent_cells_Type_1"]
+    cells: Optional["__NotebookDocumentChangeEvent_cells_Type_1"] = None
     """ Changes to cells """
 
 
@@ -3566,7 +3569,7 @@ class Registration(BaseModel):
     the request again. """
     method: str
     """ The method / capability to register for. """
-    registerOptions: Optional["LSPAny"]
+    registerOptions: Optional["LSPAny"] = None
     """ Options necessary for the registration. """
 
 
@@ -3581,7 +3584,7 @@ class Unregistration(BaseModel):
 
 
 class WorkspaceFoldersInitializeParams(Params):
-    workspaceFolders: Optional[Union[List["WorkspaceFolder"], None]]
+    workspaceFolders: Optional[Optional[List["WorkspaceFolder"]]] = None
     """ The workspace folders configured in the client when the server starts.
 
     This property is only available if the client supports workspace folders.
@@ -3595,7 +3598,7 @@ class ServerCapabilities(BaseModel):
     """Defines the capabilities provided by a language
     server."""
 
-    positionEncoding: Optional["PositionEncodingKind"]
+    positionEncoding: Optional["PositionEncodingKind"] = None
     """ The position encoding the server picked from the encodings offered
     by the client via the client capability `general.positionEncodings`.
 
@@ -3605,81 +3608,85 @@ class ServerCapabilities(BaseModel):
     If omitted it defaults to 'utf-16'.
 
     @since 3.17.0 """
-    textDocumentSync: Optional[Union["TextDocumentSyncOptions", "TextDocumentSyncKind"]]
+    textDocumentSync: Optional[
+        Union["TextDocumentSyncOptions", "TextDocumentSyncKind"]
+    ] = None
     """ Defines how text documents are synced. Is either a detailed structure
     defining each notification or for backwards compatibility the
     TextDocumentSyncKind number. """
     notebookDocumentSync: Optional[
         Union["NotebookDocumentSyncOptions", "NotebookDocumentSyncRegistrationOptions"]
-    ]
+    ] = None
     """ Defines how notebook documents are synced.
 
     @since 3.17.0 """
-    completionProvider: Optional["CompletionOptions"]
+    completionProvider: Optional["CompletionOptions"] = None
     """ The server provides completion support. """
-    hoverProvider: Optional[Union[bool, "HoverOptions"]]
+    hoverProvider: Optional[Union[bool, "HoverOptions"]] = None
     """ The server provides hover support. """
-    signatureHelpProvider: Optional["SignatureHelpOptions"]
+    signatureHelpProvider: Optional["SignatureHelpOptions"] = None
     """ The server provides signature help support. """
     declarationProvider: Optional[
         Union[bool, "DeclarationOptions", "DeclarationRegistrationOptions"]
-    ]
+    ] = None
     """ The server provides Goto Declaration support. """
-    definitionProvider: Optional[Union[bool, "DefinitionOptions"]]
+    definitionProvider: Optional[Union[bool, "DefinitionOptions"]] = None
     """ The server provides goto definition support. """
     typeDefinitionProvider: Optional[
         Union[bool, "TypeDefinitionOptions", "TypeDefinitionRegistrationOptions"]
-    ]
+    ] = None
     """ The server provides Goto Type Definition support. """
     implementationProvider: Optional[
         Union[bool, "ImplementationOptions", "ImplementationRegistrationOptions"]
-    ]
+    ] = None
     """ The server provides Goto Implementation support. """
-    referencesProvider: Optional[Union[bool, "ReferenceOptions"]]
+    referencesProvider: Optional[Union[bool, "ReferenceOptions"]] = None
     """ The server provides find references support. """
-    documentHighlightProvider: Optional[Union[bool, "DocumentHighlightOptions"]]
+    documentHighlightProvider: Optional[Union[bool, "DocumentHighlightOptions"]] = None
     """ The server provides document highlight support. """
-    documentSymbolProvider: Optional[Union[bool, "DocumentSymbolOptions"]]
+    documentSymbolProvider: Optional[Union[bool, "DocumentSymbolOptions"]] = None
     """ The server provides document symbol support. """
-    codeActionProvider: Optional[Union[bool, "CodeActionOptions"]]
+    codeActionProvider: Optional[Union[bool, "CodeActionOptions"]] = None
     """ The server provides code actions. CodeActionOptions may only be
     specified if the client states that it supports
     `codeActionLiteralSupport` in its initial `initialize` request. """
-    codeLensProvider: Optional["CodeLensOptions"]
+    codeLensProvider: Optional["CodeLensOptions"] = None
     """ The server provides code lens. """
-    documentLinkProvider: Optional["DocumentLinkOptions"]
+    documentLinkProvider: Optional["DocumentLinkOptions"] = None
     """ The server provides document link support. """
     colorProvider: Optional[
         Union[bool, "DocumentColorOptions", "DocumentColorRegistrationOptions"]
-    ]
+    ] = None
     """ The server provides color provider support. """
-    workspaceSymbolProvider: Optional[Union[bool, "WorkspaceSymbolOptions"]]
+    workspaceSymbolProvider: Optional[Union[bool, "WorkspaceSymbolOptions"]] = None
     """ The server provides workspace symbol support. """
-    documentFormattingProvider: Optional[Union[bool, "DocumentFormattingOptions"]]
+    documentFormattingProvider: Optional[Union[bool, "DocumentFormattingOptions"]] = (
+        None
+    )
     """ The server provides document formatting. """
     documentRangeFormattingProvider: Optional[
         Union[bool, "DocumentRangeFormattingOptions"]
-    ]
+    ] = None
     """ The server provides document range formatting. """
-    documentOnTypeFormattingProvider: Optional["DocumentOnTypeFormattingOptions"]
+    documentOnTypeFormattingProvider: Optional["DocumentOnTypeFormattingOptions"] = None
     """ The server provides document formatting on typing. """
-    renameProvider: Optional[Union[bool, "RenameOptions"]]
+    renameProvider: Optional[Union[bool, "RenameOptions"]] = None
     """ The server provides rename support. RenameOptions may only be
     specified if the client states that it supports
     `prepareSupport` in its initial `initialize` request. """
     foldingRangeProvider: Optional[
         Union[bool, "FoldingRangeOptions", "FoldingRangeRegistrationOptions"]
-    ]
+    ] = None
     """ The server provides folding provider support. """
     selectionRangeProvider: Optional[
         Union[bool, "SelectionRangeOptions", "SelectionRangeRegistrationOptions"]
-    ]
+    ] = None
     """ The server provides selection range support. """
-    executeCommandProvider: Optional["ExecuteCommandOptions"]
+    executeCommandProvider: Optional["ExecuteCommandOptions"] = None
     """ The server provides execute command support. """
     callHierarchyProvider: Optional[
         Union[bool, "CallHierarchyOptions", "CallHierarchyRegistrationOptions"]
-    ]
+    ] = None
     """ The server provides call hierarchy support.
 
     @since 3.16.0 """
@@ -3687,49 +3694,49 @@ class ServerCapabilities(BaseModel):
         Union[
             bool, "LinkedEditingRangeOptions", "LinkedEditingRangeRegistrationOptions"
         ]
-    ]
+    ] = None
     """ The server provides linked editing range support.
 
     @since 3.16.0 """
     semanticTokensProvider: Optional[
         Union["SemanticTokensOptions", "SemanticTokensRegistrationOptions"]
-    ]
+    ] = None
     """ The server provides semantic tokens support.
 
     @since 3.16.0 """
     monikerProvider: Optional[
         Union[bool, "MonikerOptions", "MonikerRegistrationOptions"]
-    ]
+    ] = None
     """ The server provides moniker support.
 
     @since 3.16.0 """
     typeHierarchyProvider: Optional[
         Union[bool, "TypeHierarchyOptions", "TypeHierarchyRegistrationOptions"]
-    ]
+    ] = None
     """ The server provides type hierarchy support.
 
     @since 3.17.0 """
     inlineValueProvider: Optional[
         Union[bool, "InlineValueOptions", "InlineValueRegistrationOptions"]
-    ]
+    ] = None
     """ The server provides inline values.
 
     @since 3.17.0 """
     inlayHintProvider: Optional[
         Union[bool, "InlayHintOptions", "InlayHintRegistrationOptions"]
-    ]
+    ] = None
     """ The server provides inlay hints.
 
     @since 3.17.0 """
     diagnosticProvider: Optional[
         Union["DiagnosticOptions", "DiagnosticRegistrationOptions"]
-    ]
+    ] = None
     """ The server has support for pull model diagnostics.
 
     @since 3.17.0 """
-    workspace: Optional["__ServerCapabilities_workspace_Type_1"]
+    workspace: Optional["__ServerCapabilities_workspace_Type_1"] = None
     """ Workspace specific server capabilities. """
-    experimental: Optional["LSPAny"]
+    experimental: Optional["LSPAny"] = None
     """ Experimental server capabilities. """
 
 
@@ -3745,7 +3752,7 @@ class VersionedTextDocumentIdentifier(BaseModel):
 class SaveOptions(BaseModel):
     """Save options."""
 
-    includeText: Optional[bool]
+    includeText: Optional[bool] = None
     """ The client is supposed to include the content on save. """
 
 
@@ -3763,7 +3770,7 @@ class FileSystemWatcher(BaseModel):
     """ The glob pattern to watch. See {@link GlobPattern glob pattern} for more detail.
 
     @since 3.17.0 support for relative patterns. """
-    kind: Optional["WatchKind"]
+    kind: Optional["WatchKind"] = None
     """ The kind of events of interest. If omitted it defaults
     to WatchKind.Create | WatchKind.Change | WatchKind.Delete
     which is 7. """
@@ -3775,30 +3782,30 @@ class Diagnostic(BaseModel):
 
     range: "Range"
     """ The range at which the message applies """
-    severity: Optional["DiagnosticSeverity"]
+    severity: Optional["DiagnosticSeverity"] = None
     """ The diagnostic's severity. Can be omitted. If omitted it is up to the
     client to interpret diagnostics as error, warning, info or hint. """
-    code: Optional[Union[int, str]]
+    code: Optional[Union[int, str]] = None
     """ The diagnostic's code, which usually appear in the user interface. """
-    codeDescription: Optional["CodeDescription"]
+    codeDescription: Optional["CodeDescription"] = None
     """ An optional property to describe the error code.
     Requires the code field (above) to be present/not null.
 
     @since 3.16.0 """
-    source: Optional[str]
+    source: Optional[str] = None
     """ A human-readable string describing the source of this
     diagnostic, e.g. 'typescript' or 'super lint'. It usually
     appears in the user interface. """
     message: str
     """ The diagnostic's message. It usually appears in the user interface """
-    tags: Optional[List["DiagnosticTag"]]
+    tags: Optional[List["DiagnosticTag"]] = None
     """ Additional metadata about the diagnostic.
 
     @since 3.15.0 """
-    relatedInformation: Optional[List["DiagnosticRelatedInformation"]]
+    relatedInformation: Optional[List["DiagnosticRelatedInformation"]] = None
     """ An array of related diagnostic information, e.g. when symbol-names within
     a scope collide all definitions can be marked via this property. """
-    data: Optional["LSPAny"]
+    data: Optional["LSPAny"] = None
     """ A data entry field that is preserved between a `textDocument/publishDiagnostics`
     notification and `textDocument/codeAction` request.
 
@@ -3810,7 +3817,7 @@ class CompletionContext(BaseModel):
 
     triggerKind: "CompletionTriggerKind"
     """ How the completion was triggered. """
-    triggerCharacter: Optional[str]
+    triggerCharacter: Optional[str] = None
     """ The trigger character (a single character) that has trigger code complete.
     Is undefined if `triggerKind !== CompletionTriggerKind.TriggerCharacter` """
 
@@ -3820,10 +3827,10 @@ class CompletionItemLabelDetails(BaseModel):
 
     @since 3.17.0"""
 
-    detail: Optional[str]
+    detail: Optional[str] = None
     """ An optional string which is rendered less prominently directly after {@link CompletionItem.label label},
     without any spacing. Should be used for function signatures and type annotations. """
-    description: Optional[str]
+    description: Optional[str] = None
     """ An optional string which is rendered less prominently after {@link CompletionItem.detail}. Should be used
     for fully qualified names and file paths. """
 
@@ -3844,7 +3851,7 @@ class InsertReplaceEdit(BaseModel):
 class CompletionOptions(BaseModel):
     """Completion options."""
 
-    triggerCharacters: Optional[List[str]]
+    triggerCharacters: Optional[List[str]] = None
     """ Most tools trigger completion request automatically without explicitly requesting
     it using a keyboard shortcut (e.g. Ctrl+Space). Typically they do so when the user
     starts to type an identifier. For example if the user types `c` in a JavaScript file
@@ -3853,7 +3860,7 @@ class CompletionOptions(BaseModel):
 
     If code complete should automatically be trigger on characters not being valid inside
     an identifier (for example `.` in JavaScript) list them in `triggerCharacters`. """
-    allCommitCharacters: Optional[List[str]]
+    allCommitCharacters: Optional[List[str]] = None
     """ The list of all possible characters that commit a completion. This field can be used
     if clients don't support individual commit characters per completion item. See
     `ClientCapabilities.textDocument.completion.completionItem.commitCharactersSupport`
@@ -3862,21 +3869,21 @@ class CompletionOptions(BaseModel):
     completion item the ones on the completion item win.
 
     @since 3.2.0 """
-    resolveProvider: Optional[bool]
+    resolveProvider: Optional[bool] = None
     """ The server provides support to resolve additional
     information for a completion item. """
-    completionItem: Optional["__CompletionOptions_completionItem_Type_2"]
+    completionItem: Optional["__CompletionOptions_completionItem_Type_2"] = None
     """ The server supports the following `CompletionItem` specific
     capabilities.
 
     @since 3.17.0 """
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class HoverOptions(BaseModel):
     """Hover options."""
 
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class SignatureHelpContext(BaseModel):
@@ -3886,7 +3893,7 @@ class SignatureHelpContext(BaseModel):
 
     triggerKind: "SignatureHelpTriggerKind"
     """ Action that caused signature help to be triggered. """
-    triggerCharacter: Optional[str]
+    triggerCharacter: Optional[str] = None
     """ Character that caused signature help to be triggered.
 
     This is undefined when `triggerKind !== SignatureHelpTriggerKind.TriggerCharacter` """
@@ -3895,7 +3902,7 @@ class SignatureHelpContext(BaseModel):
 
     Retriggers occurs when the signature help is already active and can be caused by actions such as
     typing a trigger character, a cursor move, or document content changes. """
-    activeSignatureHelp: Optional["SignatureHelp"]
+    activeSignatureHelp: Optional["SignatureHelp"] = None
     """ The currently active `SignatureHelp`.
 
     The `activeSignatureHelp` has its `SignatureHelp.activeSignature` field updated based on
@@ -3910,12 +3917,12 @@ class SignatureInformation(BaseModel):
     label: str
     """ The label of this signature. Will be shown in
     the UI. """
-    documentation: Optional[Union[str, "MarkupContent"]]
+    documentation: Optional[Union[str, "MarkupContent"]] = None
     """ The human-readable doc-comment of this signature. Will be shown
     in the UI but can be omitted. """
-    parameters: Optional[List["ParameterInformation"]]
+    parameters: Optional[List["ParameterInformation"]] = None
     """ The parameters of this signature. """
-    activeParameter: Optional[NonNegativeInt]
+    activeParameter: Optional[Uint] = None
     """ The index of the active parameter.
 
     If provided, this is used in place of `SignatureHelp.activeParameter`.
@@ -3926,22 +3933,22 @@ class SignatureInformation(BaseModel):
 class SignatureHelpOptions(BaseModel):
     """Server Capabilities for a {@link SignatureHelpRequest}."""
 
-    triggerCharacters: Optional[List[str]]
+    triggerCharacters: Optional[List[str]] = None
     """ List of characters that trigger signature help automatically. """
-    retriggerCharacters: Optional[List[str]]
+    retriggerCharacters: Optional[List[str]] = None
     """ List of characters that re-trigger signature help.
 
     These trigger characters are only active when signature help is already showing. All trigger characters
     are also counted as re-trigger characters.
 
     @since 3.15.0 """
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class DefinitionOptions(BaseModel):
     """Server Capabilities for a {@link DefinitionRequest}."""
 
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class ReferenceContext(BaseModel):
@@ -3955,13 +3962,13 @@ class ReferenceContext(BaseModel):
 class ReferenceOptions(BaseModel):
     """Reference options."""
 
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class DocumentHighlightOptions(BaseModel):
     """Provider options for a {@link DocumentHighlightRequest}."""
 
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class BaseSymbolInformation(BaseModel):
@@ -3971,11 +3978,11 @@ class BaseSymbolInformation(BaseModel):
     """ The name of this symbol. """
     kind: "SymbolKind"
     """ The kind of this symbol. """
-    tags: Optional[List["SymbolTag"]]
+    tags: Optional[List["SymbolTag"]] = None
     """ Tags for this symbol.
 
     @since 3.16.0 """
-    containerName: Optional[str]
+    containerName: Optional[str] = None
     """ The name of the symbol containing this symbol. This information is for
     user interface purposes (e.g. to render a qualifier in the user interface
     if necessary). It can't be used to re-infer a hierarchy for the document
@@ -3985,12 +3992,12 @@ class BaseSymbolInformation(BaseModel):
 class DocumentSymbolOptions(BaseModel):
     """Provider options for a {@link DocumentSymbolRequest}."""
 
-    label: Optional[str]
+    label: Optional[str] = None
     """ A human-readable string that is shown when multiple outlines trees
     are shown for the same document.
 
     @since 3.16.0 """
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class CodeActionContext(BaseModel):
@@ -4003,12 +4010,12 @@ class CodeActionContext(BaseModel):
     errors are currently presented to the user for the given range. There is no guarantee
     that these accurately reflect the error state of the resource. The primary parameter
     to compute code actions is the provided range. """
-    only: Optional[List["CodeActionKind"]]
+    only: Optional[List["CodeActionKind"]] = None
     """ Requested kind of actions to return.
 
     Actions not of this kind are filtered out by the client before being shown. So servers
     can omit computing them. """
-    triggerKind: Optional["CodeActionTriggerKind"]
+    triggerKind: Optional["CodeActionTriggerKind"] = None
     """ The reason why code actions were requested.
 
     @since 3.17.0 """
@@ -4017,62 +4024,62 @@ class CodeActionContext(BaseModel):
 class CodeActionOptions(BaseModel):
     """Provider options for a {@link CodeActionRequest}."""
 
-    codeActionKinds: Optional[List["CodeActionKind"]]
+    codeActionKinds: Optional[List["CodeActionKind"]] = None
     """ CodeActionKinds that this server may return.
 
     The list of kinds may be generic, such as `CodeActionKind.Refactor`, or the server
     may list out every specific kind they provide. """
-    resolveProvider: Optional[bool]
+    resolveProvider: Optional[bool] = None
     """ The server provides support to resolve additional
     information for a code action.
 
     @since 3.16.0 """
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class WorkspaceSymbolOptions(BaseModel):
     """Server capabilities for a {@link WorkspaceSymbolRequest}."""
 
-    resolveProvider: Optional[bool]
+    resolveProvider: Optional[bool] = None
     """ The server provides support to resolve additional
     information for a workspace symbol.
 
     @since 3.17.0 """
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class CodeLensOptions(BaseModel):
     """Code Lens provider options of a {@link CodeLensRequest}."""
 
-    resolveProvider: Optional[bool]
+    resolveProvider: Optional[bool] = None
     """ Code lens has a resolve provider as well. """
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class DocumentLinkOptions(BaseModel):
     """Provider options for a {@link DocumentLinkRequest}."""
 
-    resolveProvider: Optional[bool]
+    resolveProvider: Optional[bool] = None
     """ Document links have a resolve provider as well. """
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class FormattingOptions(BaseModel):
     """Value-object describing what options formatting should use."""
 
-    tabSize: NonNegativeInt
+    tabSize: Uint
     """ Size of a tab in spaces. """
     insertSpaces: bool
     """ Prefer spaces over tabs. """
-    trimTrailingWhitespace: Optional[bool]
+    trimTrailingWhitespace: Optional[bool] = None
     """ Trim trailing whitespace on a line.
 
     @since 3.15.0 """
-    insertFinalNewline: Optional[bool]
+    insertFinalNewline: Optional[bool] = None
     """ Insert a newline character at the end of the file if one does not exist.
 
     @since 3.15.0 """
-    trimFinalNewlines: Optional[bool]
+    trimFinalNewlines: Optional[bool] = None
     """ Trim all newlines after the final newline at the end of the file.
 
     @since 3.15.0 """
@@ -4081,13 +4088,13 @@ class FormattingOptions(BaseModel):
 class DocumentFormattingOptions(BaseModel):
     """Provider options for a {@link DocumentFormattingRequest}."""
 
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class DocumentRangeFormattingOptions(BaseModel):
     """Provider options for a {@link DocumentRangeFormattingRequest}."""
 
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class DocumentOnTypeFormattingOptions(BaseModel):
@@ -4095,18 +4102,18 @@ class DocumentOnTypeFormattingOptions(BaseModel):
 
     firstTriggerCharacter: str
     """ A character on which formatting should be triggered, like `{`. """
-    moreTriggerCharacter: Optional[List[str]]
+    moreTriggerCharacter: Optional[List[str]] = None
     """ More trigger characters. """
 
 
 class RenameOptions(BaseModel):
     """Provider options for a {@link RenameRequest}."""
 
-    prepareProvider: Optional[bool]
+    prepareProvider: Optional[bool] = None
     """ Renames should be checked and tested before being executed.
 
     @since version 3.12.0 """
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class ExecuteCommandOptions(BaseModel):
@@ -4114,7 +4121,7 @@ class ExecuteCommandOptions(BaseModel):
 
     commands: List[str]
     """ The commands to be executed on the server """
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
 
 
 class SemanticTokensLegend(BaseModel):
@@ -4129,7 +4136,7 @@ class SemanticTokensLegend(BaseModel):
 class OptionalVersionedTextDocumentIdentifier(BaseModel):
     """A text document identifier to optionally denote a specific version of a text document."""
 
-    version: Union[int, None]
+    version: Optional[int]
     """ The version number of this document. If a versioned text document identifier
     is sent from the server to the client and the file is not open in the editor
     (the server has not received an open notification before) the server can send
@@ -4159,7 +4166,7 @@ class ResourceOperation(BaseModel):
 
     kind: str
     """ The resource operation kind. """
-    annotationId: Optional["ChangeAnnotationIdentifier"]
+    annotationId: Optional["ChangeAnnotationIdentifier"] = None
     """ An optional annotation identifier describing the operation.
 
     @since 3.16.0 """
@@ -4168,27 +4175,27 @@ class ResourceOperation(BaseModel):
 class CreateFileOptions(BaseModel):
     """Options to create a file."""
 
-    overwrite: Optional[bool]
+    overwrite: Optional[bool] = None
     """ Overwrite existing file. Overwrite wins over `ignoreIfExists` """
-    ignoreIfExists: Optional[bool]
+    ignoreIfExists: Optional[bool] = None
     """ Ignore if exists. """
 
 
 class RenameFileOptions(BaseModel):
     """Rename file options"""
 
-    overwrite: Optional[bool]
+    overwrite: Optional[bool] = None
     """ Overwrite target if existing. Overwrite wins over `ignoreIfExists` """
-    ignoreIfExists: Optional[bool]
+    ignoreIfExists: Optional[bool] = None
     """ Ignores if target exists. """
 
 
 class DeleteFileOptions(BaseModel):
     """Delete file options"""
 
-    recursive: Optional[bool]
+    recursive: Optional[bool] = None
     """ Delete the content recursively if a folder is denoted. """
-    ignoreIfNotExists: Optional[bool]
+    ignoreIfNotExists: Optional[bool] = None
     """ Ignore the operation if the file doesn't exist. """
 
 
@@ -4206,11 +4213,11 @@ class FileOperationPattern(BaseModel):
     - `{}` to group sub patterns into an OR expression. (e.g. `**​/*.{ts,js}` matches all TypeScript and JavaScript files)
     - `[]` to declare a range of characters to match in a path segment (e.g., `example.[0-9]` to match on `example.0`, `example.1`, …)
     - `[!...]` to negate a range of characters to match in a path segment (e.g., `example.[!0-9]` to match on `example.a`, `example.b`, but not `example.0`) """
-    matches: Optional["FileOperationPatternKind"]
+    matches: Optional["FileOperationPatternKind"] = None
     """ Whether to match files or folders with this pattern.
 
     Matches both if undefined. """
-    options: Optional["FileOperationPatternOptions"]
+    options: Optional["FileOperationPatternOptions"] = None
     """ Additional options used during matching. """
 
 
@@ -4221,12 +4228,12 @@ class WorkspaceFullDocumentDiagnosticReport(BaseModel):
 
     uri: "DocumentUri"
     """ The URI for which diagnostic information is reported. """
-    version: Union[int, None]
+    version: Optional[int]
     """ The version number for which the diagnostics are reported.
     If the document is not marked as open `null` can be provided. """
     kind: Literal["full"]
     """ A full document diagnostic report. """
-    resultId: Optional[str]
+    resultId: Optional[str] = None
     """ An optional result id. If provided it will
     be sent on the next diagnostic request for the
     same document. """
@@ -4241,7 +4248,7 @@ class WorkspaceUnchangedDocumentDiagnosticReport(BaseModel):
 
     uri: "DocumentUri"
     """ The URI for which diagnostic information is reported. """
-    version: Union[int, None]
+    version: Optional[int]
     """ The version number for which the diagnostics are reported.
     If the document is not marked as open `null` can be provided. """
     kind: Literal["unchanged"]
@@ -4268,11 +4275,11 @@ class NotebookCell(BaseModel):
     document: "DocumentUri"
     """ The URI of the cell's text document
     content. """
-    metadata: Optional["LSPObject"]
+    metadata: Optional["LSPObject"] = None
     """ Additional metadata stored with the cell.
 
     Note: should always be an object literal (e.g. LSPObject) """
-    executionSummary: Optional["ExecutionSummary"]
+    executionSummary: Optional["ExecutionSummary"] = None
     """ Additional execution summary information
     if supported by the client. """
 
@@ -4283,49 +4290,49 @@ class NotebookCellArrayChange(BaseModel):
 
     @since 3.17.0"""
 
-    start: NonNegativeInt
+    start: Uint
     """ The start oftest of the cell that changed. """
-    deleteCount: NonNegativeInt
+    deleteCount: Uint
     """ The deleted cells """
-    cells: Optional[List["NotebookCell"]]
+    cells: Optional[List["NotebookCell"]] = None
     """ The new cells, if any """
 
 
 class ClientCapabilities(BaseModel):
     """Defines the capabilities provided by the client."""
 
-    workspace: Optional["WorkspaceClientCapabilities"]
+    workspace: Optional["WorkspaceClientCapabilities"] = None
     """ Workspace specific client capabilities. """
-    textDocument: Optional["TextDocumentClientCapabilities"]
+    textDocument: Optional["TextDocumentClientCapabilities"] = None
     """ Text document specific client capabilities. """
-    notebookDocument: Optional["NotebookDocumentClientCapabilities"]
+    notebookDocument: Optional["NotebookDocumentClientCapabilities"] = None
     """ Capabilities specific to the notebook document support.
 
     @since 3.17.0 """
-    window: Optional["WindowClientCapabilities"]
+    window: Optional["WindowClientCapabilities"] = None
     """ Window specific client capabilities. """
-    general: Optional["GeneralClientCapabilities"]
+    general: Optional["GeneralClientCapabilities"] = None
     """ General client capabilities.
 
     @since 3.16.0 """
-    experimental: Optional["LSPAny"]
+    experimental: Optional["LSPAny"] = None
     """ Experimental client capabilities. """
 
 
 class TextDocumentSyncOptions(BaseModel):
-    openClose: Optional[bool]
+    openClose: Optional[bool] = None
     """ Open and close notifications are sent to the server. If omitted open close notification should not
     be sent. """
-    change: Optional["TextDocumentSyncKind"]
+    change: Optional["TextDocumentSyncKind"] = None
     """ Change notifications are sent to the server. See TextDocumentSyncKind.None, TextDocumentSyncKind.Full
     and TextDocumentSyncKind.Incremental. If omitted it defaults to TextDocumentSyncKind.None. """
-    willSave: Optional[bool]
+    willSave: Optional[bool] = None
     """ If present will save notifications are sent to the server. If omitted the notification should not be
     sent. """
-    willSaveWaitUntil: Optional[bool]
+    willSaveWaitUntil: Optional[bool] = None
     """ If present will save wait until requests are sent to the server. If omitted the request should not be
     sent. """
-    save: Optional[Union[bool, "SaveOptions"]]
+    save: Optional[Union[bool, "SaveOptions"]] = None
     """ If present save notifications are sent to the server. If omitted the notification should not be
     sent. """
 
@@ -4352,7 +4359,7 @@ class NotebookDocumentSyncOptions(BaseModel):
         ]
     ]
     """ The notebooks to be synced """
-    save: Optional[bool]
+    save: Optional[bool] = None
     """ Whether save notification should be forwarded to
     the server. Will only be honored if mode === `notebook`. """
 
@@ -4369,18 +4376,18 @@ class NotebookDocumentSyncRegistrationOptions(BaseModel):
         ]
     ]
     """ The notebooks to be synced """
-    save: Optional[bool]
+    save: Optional[bool] = None
     """ Whether save notification should be forwarded to
     the server. Will only be honored if mode === `notebook`. """
-    id: Optional[str]
+    id: Optional[str] = None
     """ The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id. """
 
 
 class WorkspaceFoldersServerCapabilities(BaseModel):
-    supported: Optional[bool]
+    supported: Optional[bool] = None
     """ The server has support for workspace folders """
-    changeNotifications: Optional[Union[str, bool]]
+    changeNotifications: Optional[Union[str, bool]] = None
     """ Whether the server wants to receive workspace folder
     change notifications.
 
@@ -4395,17 +4402,17 @@ class FileOperationOptions(BaseModel):
 
     @since 3.16.0"""
 
-    didCreate: Optional["FileOperationRegistrationOptions"]
+    didCreate: Optional["FileOperationRegistrationOptions"] = None
     """ The server is interested in receiving didCreateFiles notifications. """
-    willCreate: Optional["FileOperationRegistrationOptions"]
+    willCreate: Optional["FileOperationRegistrationOptions"] = None
     """ The server is interested in receiving willCreateFiles requests. """
-    didRename: Optional["FileOperationRegistrationOptions"]
+    didRename: Optional["FileOperationRegistrationOptions"] = None
     """ The server is interested in receiving didRenameFiles notifications. """
-    willRename: Optional["FileOperationRegistrationOptions"]
+    willRename: Optional["FileOperationRegistrationOptions"] = None
     """ The server is interested in receiving willRenameFiles requests. """
-    didDelete: Optional["FileOperationRegistrationOptions"]
+    didDelete: Optional["FileOperationRegistrationOptions"] = None
     """ The server is interested in receiving didDeleteFiles file notifications. """
-    willDelete: Optional["FileOperationRegistrationOptions"]
+    willDelete: Optional["FileOperationRegistrationOptions"] = None
     """ The server is interested in receiving willDeleteFiles file requests. """
 
 
@@ -4433,7 +4440,7 @@ class ParameterInformation(BaseModel):
     """Represents a parameter of a callable-signature. A parameter can
     have a label and a doc-comment."""
 
-    label: Union[str, List[Union[NonNegativeInt, NonNegativeInt]]]
+    label: Union[str, List[Union[Uint, Uint]]]
     """ The label of this parameter information.
 
     Either a string or an inclusive start and exclusive end offsets within its containing
@@ -4442,7 +4449,7 @@ class ParameterInformation(BaseModel):
 
     *Note*: a label of type string should be a substring of its containing signature label.
     Its intended use case is to highlight the parameter label part in the `SignatureInformation.label`. """
-    documentation: Optional[Union[str, "MarkupContent"]]
+    documentation: Optional[Union[str, "MarkupContent"]] = None
     """ The human-readable doc-comment of this parameter. Will be shown
     in the UI but can be omitted. """
 
@@ -4458,7 +4465,7 @@ class NotebookCellTextDocumentFilter(BaseModel):
     containing the notebook cell. If a string
     value is provided it matches against the
     notebook type. '*' matches every notebook. """
-    language: Optional[str]
+    language: Optional[str] = None
     """ A language id like `python`.
 
     Will be matched against the language id of the
@@ -4470,16 +4477,16 @@ class FileOperationPatternOptions(BaseModel):
 
     @since 3.16.0"""
 
-    ignoreCase: Optional[bool]
+    ignoreCase: Optional[bool] = None
     """ The pattern should be matched ignoring casing. """
 
 
 class ExecutionSummary(BaseModel):
-    executionOrder: NonNegativeInt
+    executionOrder: Uint
     """ A strict monotonically increasing value
     indicating the execution order of a cell
     inside a notebook. """
-    success: Optional[bool]
+    success: Optional[bool] = None
     """ Whether the execution was successful or
     not if known by the client. """
 
@@ -4487,53 +4494,53 @@ class ExecutionSummary(BaseModel):
 class WorkspaceClientCapabilities(BaseModel):
     """Workspace specific client capabilities."""
 
-    applyEdit: Optional[bool]
+    applyEdit: Optional[bool] = None
     """ The client supports applying batch edits
     to the workspace by supporting the request
     'workspace/applyEdit' """
-    workspaceEdit: Optional["WorkspaceEditClientCapabilities"]
+    workspaceEdit: Optional["WorkspaceEditClientCapabilities"] = None
     """ Capabilities specific to `WorkspaceEdit`s. """
-    didChangeConfiguration: Optional["DidChangeConfigurationClientCapabilities"]
+    didChangeConfiguration: Optional["DidChangeConfigurationClientCapabilities"] = None
     """ Capabilities specific to the `workspace/didChangeConfiguration` notification. """
-    didChangeWatchedFiles: Optional["DidChangeWatchedFilesClientCapabilities"]
+    didChangeWatchedFiles: Optional["DidChangeWatchedFilesClientCapabilities"] = None
     """ Capabilities specific to the `workspace/didChangeWatchedFiles` notification. """
-    symbol: Optional["WorkspaceSymbolClientCapabilities"]
+    symbol: Optional["WorkspaceSymbolClientCapabilities"] = None
     """ Capabilities specific to the `workspace/symbol` request. """
-    executeCommand: Optional["ExecuteCommandClientCapabilities"]
+    executeCommand: Optional["ExecuteCommandClientCapabilities"] = None
     """ Capabilities specific to the `workspace/executeCommand` request. """
-    workspaceFolders: Optional[bool]
+    workspaceFolders: Optional[bool] = None
     """ The client has support for workspace folders.
 
     @since 3.6.0 """
-    configuration: Optional[bool]
+    configuration: Optional[bool] = None
     """ The client supports `workspace/configuration` requests.
 
     @since 3.6.0 """
-    semanticTokens: Optional["SemanticTokensWorkspaceClientCapabilities"]
+    semanticTokens: Optional["SemanticTokensWorkspaceClientCapabilities"] = None
     """ Capabilities specific to the semantic token requests scoped to the
     workspace.
 
     @since 3.16.0. """
-    codeLens: Optional["CodeLensWorkspaceClientCapabilities"]
+    codeLens: Optional["CodeLensWorkspaceClientCapabilities"] = None
     """ Capabilities specific to the code lens requests scoped to the
     workspace.
 
     @since 3.16.0. """
-    fileOperations: Optional["FileOperationClientCapabilities"]
+    fileOperations: Optional["FileOperationClientCapabilities"] = None
     """ The client has support for file notifications/requests for user operations on files.
 
     Since 3.16.0 """
-    inlineValue: Optional["InlineValueWorkspaceClientCapabilities"]
+    inlineValue: Optional["InlineValueWorkspaceClientCapabilities"] = None
     """ Capabilities specific to the inline values requests scoped to the
     workspace.
 
     @since 3.17.0. """
-    inlayHint: Optional["InlayHintWorkspaceClientCapabilities"]
+    inlayHint: Optional["InlayHintWorkspaceClientCapabilities"] = None
     """ Capabilities specific to the inlay hint requests scoped to the
     workspace.
 
     @since 3.17.0. """
-    diagnostics: Optional["DiagnosticWorkspaceClientCapabilities"]
+    diagnostics: Optional["DiagnosticWorkspaceClientCapabilities"] = None
     """ Capabilities specific to the diagnostic requests scoped to the
     workspace.
 
@@ -4543,92 +4550,92 @@ class WorkspaceClientCapabilities(BaseModel):
 class TextDocumentClientCapabilities(BaseModel):
     """Text document specific client capabilities."""
 
-    synchronization: Optional["TextDocumentSyncClientCapabilities"]
+    synchronization: Optional["TextDocumentSyncClientCapabilities"] = None
     """ Defines which synchronization capabilities the client supports. """
-    completion: Optional["CompletionClientCapabilities"]
+    completion: Optional["CompletionClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/completion` request. """
-    hover: Optional["HoverClientCapabilities"]
+    hover: Optional["HoverClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/hover` request. """
-    signatureHelp: Optional["SignatureHelpClientCapabilities"]
+    signatureHelp: Optional["SignatureHelpClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/signatureHelp` request. """
-    declaration: Optional["DeclarationClientCapabilities"]
+    declaration: Optional["DeclarationClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/declaration` request.
 
     @since 3.14.0 """
-    definition: Optional["DefinitionClientCapabilities"]
+    definition: Optional["DefinitionClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/definition` request. """
-    typeDefinition: Optional["TypeDefinitionClientCapabilities"]
+    typeDefinition: Optional["TypeDefinitionClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/typeDefinition` request.
 
     @since 3.6.0 """
-    implementation: Optional["ImplementationClientCapabilities"]
+    implementation: Optional["ImplementationClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/implementation` request.
 
     @since 3.6.0 """
-    references: Optional["ReferenceClientCapabilities"]
+    references: Optional["ReferenceClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/references` request. """
-    documentHighlight: Optional["DocumentHighlightClientCapabilities"]
+    documentHighlight: Optional["DocumentHighlightClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/documentHighlight` request. """
-    documentSymbol: Optional["DocumentSymbolClientCapabilities"]
+    documentSymbol: Optional["DocumentSymbolClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/documentSymbol` request. """
-    codeAction: Optional["CodeActionClientCapabilities"]
+    codeAction: Optional["CodeActionClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/codeAction` request. """
-    codeLens: Optional["CodeLensClientCapabilities"]
+    codeLens: Optional["CodeLensClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/codeLens` request. """
-    documentLink: Optional["DocumentLinkClientCapabilities"]
+    documentLink: Optional["DocumentLinkClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/documentLink` request. """
-    colorProvider: Optional["DocumentColorClientCapabilities"]
+    colorProvider: Optional["DocumentColorClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/documentColor` and the
     `textDocument/colorPresentation` request.
 
     @since 3.6.0 """
-    formatting: Optional["DocumentFormattingClientCapabilities"]
+    formatting: Optional["DocumentFormattingClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/formatting` request. """
-    rangeFormatting: Optional["DocumentRangeFormattingClientCapabilities"]
+    rangeFormatting: Optional["DocumentRangeFormattingClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/rangeFormatting` request. """
-    onTypeFormatting: Optional["DocumentOnTypeFormattingClientCapabilities"]
+    onTypeFormatting: Optional["DocumentOnTypeFormattingClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/onTypeFormatting` request. """
-    rename: Optional["RenameClientCapabilities"]
+    rename: Optional["RenameClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/rename` request. """
-    foldingRange: Optional["FoldingRangeClientCapabilities"]
+    foldingRange: Optional["FoldingRangeClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/foldingRange` request.
 
     @since 3.10.0 """
-    selectionRange: Optional["SelectionRangeClientCapabilities"]
+    selectionRange: Optional["SelectionRangeClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/selectionRange` request.
 
     @since 3.15.0 """
-    publishDiagnostics: Optional["PublishDiagnosticsClientCapabilities"]
+    publishDiagnostics: Optional["PublishDiagnosticsClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/publishDiagnostics` notification. """
-    callHierarchy: Optional["CallHierarchyClientCapabilities"]
+    callHierarchy: Optional["CallHierarchyClientCapabilities"] = None
     """ Capabilities specific to the various call hierarchy requests.
 
     @since 3.16.0 """
-    semanticTokens: Optional["SemanticTokensClientCapabilities"]
+    semanticTokens: Optional["SemanticTokensClientCapabilities"] = None
     """ Capabilities specific to the various semantic token request.
 
     @since 3.16.0 """
-    linkedEditingRange: Optional["LinkedEditingRangeClientCapabilities"]
+    linkedEditingRange: Optional["LinkedEditingRangeClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/linkedEditingRange` request.
 
     @since 3.16.0 """
-    moniker: Optional["MonikerClientCapabilities"]
+    moniker: Optional["MonikerClientCapabilities"] = None
     """ Client capabilities specific to the `textDocument/moniker` request.
 
     @since 3.16.0 """
-    typeHierarchy: Optional["TypeHierarchyClientCapabilities"]
+    typeHierarchy: Optional["TypeHierarchyClientCapabilities"] = None
     """ Capabilities specific to the various type hierarchy requests.
 
     @since 3.17.0 """
-    inlineValue: Optional["InlineValueClientCapabilities"]
+    inlineValue: Optional["InlineValueClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/inlineValue` request.
 
     @since 3.17.0 """
-    inlayHint: Optional["InlayHintClientCapabilities"]
+    inlayHint: Optional["InlayHintClientCapabilities"] = None
     """ Capabilities specific to the `textDocument/inlayHint` request.
 
     @since 3.17.0 """
-    diagnostic: Optional["DiagnosticClientCapabilities"]
+    diagnostic: Optional["DiagnosticClientCapabilities"] = None
     """ Capabilities specific to the diagnostic pull model.
 
     @since 3.17.0 """
@@ -4646,7 +4653,7 @@ class NotebookDocumentClientCapabilities(BaseModel):
 
 
 class WindowClientCapabilities(BaseModel):
-    workDoneProgress: Optional[bool]
+    workDoneProgress: Optional[bool] = None
     """ It indicates whether the client supports server initiated
     progress using the `window/workDoneProgress/create` request.
 
@@ -4656,11 +4663,11 @@ class WindowClientCapabilities(BaseModel):
     capabilities.
 
     @since 3.15.0 """
-    showMessage: Optional["ShowMessageRequestClientCapabilities"]
+    showMessage: Optional["ShowMessageRequestClientCapabilities"] = None
     """ Capabilities specific to the showMessage request.
 
     @since 3.16.0 """
-    showDocument: Optional["ShowDocumentClientCapabilities"]
+    showDocument: Optional["ShowDocumentClientCapabilities"] = None
     """ Capabilities specific to the showDocument request.
 
     @since 3.16.0 """
@@ -4673,22 +4680,22 @@ class GeneralClientCapabilities(BaseModel):
 
     staleRequestSupport: Optional[
         "__GeneralClientCapabilities_staleRequestSupport_Type_1"
-    ]
+    ] = None
     """ Client capability that signals how the client
     handles stale requests (e.g. a request
     for which the client will not process the response
     anymore since the information is outdated).
 
     @since 3.17.0 """
-    regularExpressions: Optional["RegularExpressionsClientCapabilities"]
+    regularExpressions: Optional["RegularExpressionsClientCapabilities"] = None
     """ Client capabilities specific to regular expressions.
 
     @since 3.16.0 """
-    markdown: Optional["MarkdownClientCapabilities"]
+    markdown: Optional["MarkdownClientCapabilities"] = None
     """ Client capabilities specific to the client's markdown parser.
 
     @since 3.16.0 """
-    positionEncodings: Optional[List["PositionEncodingKind"]]
+    positionEncodings: Optional[List["PositionEncodingKind"]] = None
     """ The position encodings supported by the client. Client and server
     have to agree on the same position encoding to ensure that offsets
     (e.g. character position in a line) are interpreted the same on both
@@ -4724,19 +4731,19 @@ class RelativePattern(BaseModel):
 
 
 class WorkspaceEditClientCapabilities(BaseModel):
-    documentChanges: Optional[bool]
+    documentChanges: Optional[bool] = None
     """ The client supports versioned document changes in `WorkspaceEdit`s """
-    resourceOperations: Optional[List["ResourceOperationKind"]]
+    resourceOperations: Optional[List["ResourceOperationKind"]] = None
     """ The resource operations the client supports. Clients should at least
     support 'create', 'rename' and 'delete' files and folders.
 
     @since 3.13.0 """
-    failureHandling: Optional["FailureHandlingKind"]
+    failureHandling: Optional["FailureHandlingKind"] = None
     """ The failure handling strategy of a client if applying the workspace edit
     fails.
 
     @since 3.13.0 """
-    normalizesLineEndings: Optional[bool]
+    normalizesLineEndings: Optional[bool] = None
     """ Whether the client normalizes line endings to the client specific
     setting.
     If set to `true` the client will normalize line ending characters
@@ -4746,7 +4753,7 @@ class WorkspaceEditClientCapabilities(BaseModel):
     @since 3.16.0 """
     changeAnnotationSupport: Optional[
         "__WorkspaceEditClientCapabilities_changeAnnotationSupport_Type_1"
-    ]
+    ] = None
     """ Whether the client in general supports change annotations on text edits,
     create file, rename file and delete file changes.
 
@@ -4754,16 +4761,16 @@ class WorkspaceEditClientCapabilities(BaseModel):
 
 
 class DidChangeConfigurationClientCapabilities(BaseModel):
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Did change configuration notification supports dynamic registration. """
 
 
 class DidChangeWatchedFilesClientCapabilities(BaseModel):
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Did change watched files notification supports dynamic registration. Please note
     that the current protocol doesn't support static configuration for file changes
     from the server side. """
-    relativePatternSupport: Optional[bool]
+    relativePatternSupport: Optional[bool] = None
     """ Whether the client has support for {@link  RelativePattern relative pattern}
     or not.
 
@@ -4773,18 +4780,18 @@ class DidChangeWatchedFilesClientCapabilities(BaseModel):
 class WorkspaceSymbolClientCapabilities(BaseModel):
     """Client capabilities for a {@link WorkspaceSymbolRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Symbol request supports dynamic registration. """
-    symbolKind: Optional["__WorkspaceSymbolClientCapabilities_symbolKind_Type_1"]
+    symbolKind: Optional["__WorkspaceSymbolClientCapabilities_symbolKind_Type_1"] = None
     """ Specific capabilities for the `SymbolKind` in the `workspace/symbol` request. """
-    tagSupport: Optional["__WorkspaceSymbolClientCapabilities_tagSupport_Type_1"]
+    tagSupport: Optional["__WorkspaceSymbolClientCapabilities_tagSupport_Type_1"] = None
     """ The client supports tags on `SymbolInformation`.
     Clients supporting tags have to handle unknown tags gracefully.
 
     @since 3.16.0 """
     resolveSupport: Optional[
         "__WorkspaceSymbolClientCapabilities_resolveSupport_Type_1"
-    ]
+    ] = None
     """ The client support partial workspace symbols. The client will send the
     request `workspaceSymbol/resolve` to the server to resolve additional
     properties.
@@ -4795,14 +4802,14 @@ class WorkspaceSymbolClientCapabilities(BaseModel):
 class ExecuteCommandClientCapabilities(BaseModel):
     """The client capabilities of a {@link ExecuteCommandRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Execute command supports dynamic registration. """
 
 
 class SemanticTokensWorkspaceClientCapabilities(BaseModel):
     """@since 3.16.0"""
 
-    refreshSupport: Optional[bool]
+    refreshSupport: Optional[bool] = None
     """ Whether the client implementation supports a refresh request sent from
     the server to the client.
 
@@ -4815,7 +4822,7 @@ class SemanticTokensWorkspaceClientCapabilities(BaseModel):
 class CodeLensWorkspaceClientCapabilities(BaseModel):
     """@since 3.16.0"""
 
-    refreshSupport: Optional[bool]
+    refreshSupport: Optional[bool] = None
     """ Whether the client implementation supports a refresh request sent from the
     server to the client.
 
@@ -4833,19 +4840,19 @@ class FileOperationClientCapabilities(BaseModel):
 
     @since 3.16.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether the client supports dynamic registration for file requests/notifications. """
-    didCreate: Optional[bool]
+    didCreate: Optional[bool] = None
     """ The client has support for sending didCreateFiles notifications. """
-    willCreate: Optional[bool]
+    willCreate: Optional[bool] = None
     """ The client has support for sending willCreateFiles requests. """
-    didRename: Optional[bool]
+    didRename: Optional[bool] = None
     """ The client has support for sending didRenameFiles notifications. """
-    willRename: Optional[bool]
+    willRename: Optional[bool] = None
     """ The client has support for sending willRenameFiles requests. """
-    didDelete: Optional[bool]
+    didDelete: Optional[bool] = None
     """ The client has support for sending didDeleteFiles notifications. """
-    willDelete: Optional[bool]
+    willDelete: Optional[bool] = None
     """ The client has support for sending willDeleteFiles requests. """
 
 
@@ -4854,7 +4861,7 @@ class InlineValueWorkspaceClientCapabilities(BaseModel):
 
     @since 3.17.0"""
 
-    refreshSupport: Optional[bool]
+    refreshSupport: Optional[bool] = None
     """ Whether the client implementation supports a refresh request sent from the
     server to the client.
 
@@ -4869,7 +4876,7 @@ class InlayHintWorkspaceClientCapabilities(BaseModel):
 
     @since 3.17.0"""
 
-    refreshSupport: Optional[bool]
+    refreshSupport: Optional[bool] = None
     """ Whether the client implementation supports a refresh request sent from
     the server to the client.
 
@@ -4884,7 +4891,7 @@ class DiagnosticWorkspaceClientCapabilities(BaseModel):
 
     @since 3.17.0"""
 
-    refreshSupport: Optional[bool]
+    refreshSupport: Optional[bool] = None
     """ Whether the client implementation supports a refresh request sent from
     the server to the client.
 
@@ -4895,39 +4902,43 @@ class DiagnosticWorkspaceClientCapabilities(BaseModel):
 
 
 class TextDocumentSyncClientCapabilities(BaseModel):
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether text document synchronization supports dynamic registration. """
-    willSave: Optional[bool]
+    willSave: Optional[bool] = None
     """ The client supports sending will save notifications. """
-    willSaveWaitUntil: Optional[bool]
+    willSaveWaitUntil: Optional[bool] = None
     """ The client supports sending a will save request and
     waits for a response providing text edits which will
     be applied to the document before it is saved. """
-    didSave: Optional[bool]
+    didSave: Optional[bool] = None
     """ The client supports did save notifications. """
 
 
 class CompletionClientCapabilities(BaseModel):
     """Completion client capabilities"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether completion supports dynamic registration. """
-    completionItem: Optional["__CompletionClientCapabilities_completionItem_Type_1"]
+    completionItem: Optional["__CompletionClientCapabilities_completionItem_Type_1"] = (
+        None
+    )
     """ The client supports the following `CompletionItem` specific
     capabilities. """
     completionItemKind: Optional[
         "__CompletionClientCapabilities_completionItemKind_Type_1"
-    ]
-    insertTextMode: Optional["InsertTextMode"]
+    ] = None
+    insertTextMode: Optional["InsertTextMode"] = None
     """ Defines how the client handles whitespace and indentation
     when accepting a completion item that uses multi line
     text in either `insertText` or `textEdit`.
 
     @since 3.17.0 """
-    contextSupport: Optional[bool]
+    contextSupport: Optional[bool] = None
     """ The client supports to send additional context information for a
     `textDocument/completion` request. """
-    completionList: Optional["__CompletionClientCapabilities_completionList_Type_1"]
+    completionList: Optional["__CompletionClientCapabilities_completionList_Type_1"] = (
+        None
+    )
     """ The client supports the following `CompletionList` specific
     capabilities.
 
@@ -4935,9 +4946,9 @@ class CompletionClientCapabilities(BaseModel):
 
 
 class HoverClientCapabilities(BaseModel):
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether hover supports dynamic registration. """
-    contentFormat: Optional[List["MarkupKind"]]
+    contentFormat: Optional[List["MarkupKind"]] = None
     """ Client supports the following content formats for the content
     property. The order describes the preferred format of the client. """
 
@@ -4945,14 +4956,14 @@ class HoverClientCapabilities(BaseModel):
 class SignatureHelpClientCapabilities(BaseModel):
     """Client Capabilities for a {@link SignatureHelpRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether signature help supports dynamic registration. """
     signatureInformation: Optional[
         "__SignatureHelpClientCapabilities_signatureInformation_Type_1"
-    ]
+    ] = None
     """ The client supports the following `SignatureInformation`
     specific properties. """
-    contextSupport: Optional[bool]
+    contextSupport: Optional[bool] = None
     """ The client supports to send additional context information for a
     `textDocument/signatureHelp` request. A client that opts into
     contextSupport will also support the `retriggerCharacters` on
@@ -4964,20 +4975,20 @@ class SignatureHelpClientCapabilities(BaseModel):
 class DeclarationClientCapabilities(BaseModel):
     """@since 3.14.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether declaration supports dynamic registration. If this is set to `true`
     the client supports the new `DeclarationRegistrationOptions` return value
     for the corresponding server capability as well. """
-    linkSupport: Optional[bool]
+    linkSupport: Optional[bool] = None
     """ The client supports additional metadata in the form of declaration links. """
 
 
 class DefinitionClientCapabilities(BaseModel):
     """Client Capabilities for a {@link DefinitionRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether definition supports dynamic registration. """
-    linkSupport: Optional[bool]
+    linkSupport: Optional[bool] = None
     """ The client supports additional metadata in the form of definition links.
 
     @since 3.14.0 """
@@ -4986,11 +4997,11 @@ class DefinitionClientCapabilities(BaseModel):
 class TypeDefinitionClientCapabilities(BaseModel):
     """Since 3.6.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether implementation supports dynamic registration. If this is set to `true`
     the client supports the new `TypeDefinitionRegistrationOptions` return value
     for the corresponding server capability as well. """
-    linkSupport: Optional[bool]
+    linkSupport: Optional[bool] = None
     """ The client supports additional metadata in the form of definition links.
 
     Since 3.14.0 """
@@ -4999,11 +5010,11 @@ class TypeDefinitionClientCapabilities(BaseModel):
 class ImplementationClientCapabilities(BaseModel):
     """@since 3.6.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether implementation supports dynamic registration. If this is set to `true`
     the client supports the new `ImplementationRegistrationOptions` return value
     for the corresponding server capability as well. """
-    linkSupport: Optional[bool]
+    linkSupport: Optional[bool] = None
     """ The client supports additional metadata in the form of definition links.
 
     @since 3.14.0 """
@@ -5012,34 +5023,34 @@ class ImplementationClientCapabilities(BaseModel):
 class ReferenceClientCapabilities(BaseModel):
     """Client Capabilities for a {@link ReferencesRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether references supports dynamic registration. """
 
 
 class DocumentHighlightClientCapabilities(BaseModel):
     """Client Capabilities for a {@link DocumentHighlightRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether document highlight supports dynamic registration. """
 
 
 class DocumentSymbolClientCapabilities(BaseModel):
     """Client Capabilities for a {@link DocumentSymbolRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether document symbol supports dynamic registration. """
-    symbolKind: Optional["__DocumentSymbolClientCapabilities_symbolKind_Type_1"]
+    symbolKind: Optional["__DocumentSymbolClientCapabilities_symbolKind_Type_1"] = None
     """ Specific capabilities for the `SymbolKind` in the
     `textDocument/documentSymbol` request. """
-    hierarchicalDocumentSymbolSupport: Optional[bool]
+    hierarchicalDocumentSymbolSupport: Optional[bool] = None
     """ The client supports hierarchical document symbols. """
-    tagSupport: Optional["__DocumentSymbolClientCapabilities_tagSupport_Type_1"]
+    tagSupport: Optional["__DocumentSymbolClientCapabilities_tagSupport_Type_1"] = None
     """ The client supports tags on `SymbolInformation`. Tags are supported on
     `DocumentSymbol` if `hierarchicalDocumentSymbolSupport` is set to true.
     Clients supporting tags have to handle unknown tags gracefully.
 
     @since 3.16.0 """
-    labelSupport: Optional[bool]
+    labelSupport: Optional[bool] = None
     """ The client supports an additional label presented in the UI when
     registering a document symbol provider.
 
@@ -5049,36 +5060,38 @@ class DocumentSymbolClientCapabilities(BaseModel):
 class CodeActionClientCapabilities(BaseModel):
     """The Client Capabilities of a {@link CodeActionRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether code action supports dynamic registration. """
     codeActionLiteralSupport: Optional[
         "__CodeActionClientCapabilities_codeActionLiteralSupport_Type_1"
-    ]
+    ] = None
     """ The client support code action literals of type `CodeAction` as a valid
     response of the `textDocument/codeAction` request. If the property is not
     set the request can only return `Command` literals.
 
     @since 3.8.0 """
-    isPreferredSupport: Optional[bool]
+    isPreferredSupport: Optional[bool] = None
     """ Whether code action supports the `isPreferred` property.
 
     @since 3.15.0 """
-    disabledSupport: Optional[bool]
+    disabledSupport: Optional[bool] = None
     """ Whether code action supports the `disabled` property.
 
     @since 3.16.0 """
-    dataSupport: Optional[bool]
+    dataSupport: Optional[bool] = None
     """ Whether code action supports the `data` property which is
     preserved between a `textDocument/codeAction` and a
     `codeAction/resolve` request.
 
     @since 3.16.0 """
-    resolveSupport: Optional["__CodeActionClientCapabilities_resolveSupport_Type_1"]
+    resolveSupport: Optional["__CodeActionClientCapabilities_resolveSupport_Type_1"] = (
+        None
+    )
     """ Whether the client supports resolving additional code action
     properties via a separate `codeAction/resolve` request.
 
     @since 3.16.0 """
-    honorsChangeAnnotations: Optional[bool]
+    honorsChangeAnnotations: Optional[bool] = None
     """ Whether the client honors the change annotations in
     text edits and resource operations returned via the
     `CodeAction#edit` property by for example presenting
@@ -5091,23 +5104,23 @@ class CodeActionClientCapabilities(BaseModel):
 class CodeLensClientCapabilities(BaseModel):
     """The client capabilities  of a {@link CodeLensRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether code lens supports dynamic registration. """
 
 
 class DocumentLinkClientCapabilities(BaseModel):
     """The client capabilities of a {@link DocumentLinkRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether document link supports dynamic registration. """
-    tooltipSupport: Optional[bool]
+    tooltipSupport: Optional[bool] = None
     """ Whether the client supports the `tooltip` property on `DocumentLink`.
 
     @since 3.15.0 """
 
 
 class DocumentColorClientCapabilities(BaseModel):
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether implementation supports dynamic registration. If this is set to `true`
     the client supports the new `DocumentColorRegistrationOptions` return value
     for the corresponding server capability as well. """
@@ -5116,40 +5129,40 @@ class DocumentColorClientCapabilities(BaseModel):
 class DocumentFormattingClientCapabilities(BaseModel):
     """Client capabilities of a {@link DocumentFormattingRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether formatting supports dynamic registration. """
 
 
 class DocumentRangeFormattingClientCapabilities(BaseModel):
     """Client capabilities of a {@link DocumentRangeFormattingRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether range formatting supports dynamic registration. """
 
 
 class DocumentOnTypeFormattingClientCapabilities(BaseModel):
     """Client capabilities of a {@link DocumentOnTypeFormattingRequest}."""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether on type formatting supports dynamic registration. """
 
 
 class RenameClientCapabilities(BaseModel):
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether rename supports dynamic registration. """
-    prepareSupport: Optional[bool]
+    prepareSupport: Optional[bool] = None
     """ Client supports testing for validity of rename operations
     before execution.
 
     @since 3.12.0 """
-    prepareSupportDefaultBehavior: Optional["PrepareSupportDefaultBehavior"]
+    prepareSupportDefaultBehavior: Optional["PrepareSupportDefaultBehavior"] = None
     """ Client supports the default behavior result.
 
     The value indicates the default behavior used by the
     client.
 
     @since 3.16.0 """
-    honorsChangeAnnotations: Optional[bool]
+    honorsChangeAnnotations: Optional[bool] = None
     """ Whether the client honors the change annotations in
     text edits and resource operations returned via the
     rename request's workspace edit by for example presenting
@@ -5160,33 +5173,35 @@ class RenameClientCapabilities(BaseModel):
 
 
 class FoldingRangeClientCapabilities(BaseModel):
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether implementation supports dynamic registration for folding range
     providers. If this is set to `true` the client supports the new
     `FoldingRangeRegistrationOptions` return value for the corresponding
     server capability as well. """
-    rangeLimit: Optional[NonNegativeInt]
+    rangeLimit: Optional[Uint] = None
     """ The maximum number of folding ranges that the client prefers to receive
     per document. The value serves as a hint, servers are free to follow the
     limit. """
-    lineFoldingOnly: Optional[bool]
+    lineFoldingOnly: Optional[bool] = None
     """ If set, the client signals that it only supports folding complete lines.
     If set, client will ignore specified `startCharacter` and `endCharacter`
     properties in a FoldingRange. """
     foldingRangeKind: Optional[
         "__FoldingRangeClientCapabilities_foldingRangeKind_Type_1"
-    ]
+    ] = None
     """ Specific options for the folding range kind.
 
     @since 3.17.0 """
-    foldingRange: Optional["__FoldingRangeClientCapabilities_foldingRange_Type_1"]
+    foldingRange: Optional["__FoldingRangeClientCapabilities_foldingRange_Type_1"] = (
+        None
+    )
     """ Specific options for the folding range.
 
     @since 3.17.0 """
 
 
 class SelectionRangeClientCapabilities(BaseModel):
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether implementation supports dynamic registration for selection range providers. If this is set to `true`
     the client supports the new `SelectionRangeRegistrationOptions` return value for the corresponding server
     capability as well. """
@@ -5195,23 +5210,25 @@ class SelectionRangeClientCapabilities(BaseModel):
 class PublishDiagnosticsClientCapabilities(BaseModel):
     """The publish diagnostic client capabilities."""
 
-    relatedInformation: Optional[bool]
+    relatedInformation: Optional[bool] = None
     """ Whether the clients accepts diagnostics with related information. """
-    tagSupport: Optional["__PublishDiagnosticsClientCapabilities_tagSupport_Type_1"]
+    tagSupport: Optional["__PublishDiagnosticsClientCapabilities_tagSupport_Type_1"] = (
+        None
+    )
     """ Client supports the tag property to provide meta data about a diagnostic.
     Clients supporting tags have to handle unknown tags gracefully.
 
     @since 3.15.0 """
-    versionSupport: Optional[bool]
+    versionSupport: Optional[bool] = None
     """ Whether the client interprets the version property of the
     `textDocument/publishDiagnostics` notification's parameter.
 
     @since 3.15.0 """
-    codeDescriptionSupport: Optional[bool]
+    codeDescriptionSupport: Optional[bool] = None
     """ Client supports a codeDescription property
 
     @since 3.16.0 """
-    dataSupport: Optional[bool]
+    dataSupport: Optional[bool] = None
     """ Whether code action supports the `data` property which is
     preserved between a `textDocument/publishDiagnostics` and
     `textDocument/codeAction` request.
@@ -5222,7 +5239,7 @@ class PublishDiagnosticsClientCapabilities(BaseModel):
 class CallHierarchyClientCapabilities(BaseModel):
     """@since 3.16.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether implementation supports dynamic registration. If this is set to `true`
     the client supports the new `(TextDocumentRegistrationOptions & StaticRegistrationOptions)`
     return value for the corresponding server capability as well. """
@@ -5231,7 +5248,7 @@ class CallHierarchyClientCapabilities(BaseModel):
 class SemanticTokensClientCapabilities(BaseModel):
     """@since 3.16.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether implementation supports dynamic registration. If this is set to `true`
     the client supports the new `(TextDocumentRegistrationOptions & StaticRegistrationOptions)`
     return value for the corresponding server capability as well. """
@@ -5250,18 +5267,18 @@ class SemanticTokensClientCapabilities(BaseModel):
     """ The token modifiers that the client supports. """
     formats: List["TokenFormat"]
     """ The token formats the clients supports. """
-    overlappingTokenSupport: Optional[bool]
+    overlappingTokenSupport: Optional[bool] = None
     """ Whether the client supports tokens that can overlap each other. """
-    multilineTokenSupport: Optional[bool]
+    multilineTokenSupport: Optional[bool] = None
     """ Whether the client supports tokens that can span multiple lines. """
-    serverCancelSupport: Optional[bool]
+    serverCancelSupport: Optional[bool] = None
     """ Whether the client allows the server to actively cancel a
     semantic token request, e.g. supports returning
     LSPErrorCodes.ServerCancelled. If a server does the client
     needs to retrigger the request.
 
     @since 3.17.0 """
-    augmentsSyntaxTokens: Optional[bool]
+    augmentsSyntaxTokens: Optional[bool] = None
     """ Whether the client uses semantic tokens to augment existing
     syntax tokens. If set to `true` client side created syntax
     tokens and semantic tokens are both used for colorization. If
@@ -5279,7 +5296,7 @@ class LinkedEditingRangeClientCapabilities(BaseModel):
 
     @since 3.16.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether implementation supports dynamic registration. If this is set to `true`
     the client supports the new `(TextDocumentRegistrationOptions & StaticRegistrationOptions)`
     return value for the corresponding server capability as well. """
@@ -5290,7 +5307,7 @@ class MonikerClientCapabilities(BaseModel):
 
     @since 3.16.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether moniker supports dynamic registration. If this is set to `true`
     the client supports the new `MonikerRegistrationOptions` return value
     for the corresponding server capability as well. """
@@ -5299,7 +5316,7 @@ class MonikerClientCapabilities(BaseModel):
 class TypeHierarchyClientCapabilities(BaseModel):
     """@since 3.17.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether implementation supports dynamic registration. If this is set to `true`
     the client supports the new `(TextDocumentRegistrationOptions & StaticRegistrationOptions)`
     return value for the corresponding server capability as well. """
@@ -5310,7 +5327,7 @@ class InlineValueClientCapabilities(BaseModel):
 
     @since 3.17.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether implementation supports dynamic registration for inline value providers. """
 
 
@@ -5319,9 +5336,11 @@ class InlayHintClientCapabilities(BaseModel):
 
     @since 3.17.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether inlay hints support dynamic registration. """
-    resolveSupport: Optional["__InlayHintClientCapabilities_resolveSupport_Type_1"]
+    resolveSupport: Optional["__InlayHintClientCapabilities_resolveSupport_Type_1"] = (
+        None
+    )
     """ Indicates which properties a client can resolve lazily on an inlay
     hint. """
 
@@ -5331,11 +5350,11 @@ class DiagnosticClientCapabilities(BaseModel):
 
     @since 3.17.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether implementation supports dynamic registration. If this is set to `true`
     the client supports the new `(TextDocumentRegistrationOptions & StaticRegistrationOptions)`
     return value for the corresponding server capability as well. """
-    relatedDocumentSupport: Optional[bool]
+    relatedDocumentSupport: Optional[bool] = None
     """ Whether the clients supports related documents for document diagnostic pulls. """
 
 
@@ -5344,12 +5363,12 @@ class NotebookDocumentSyncClientCapabilities(BaseModel):
 
     @since 3.17.0"""
 
-    dynamicRegistration: Optional[bool]
+    dynamicRegistration: Optional[bool] = None
     """ Whether implementation supports dynamic registration. If this is
     set to `true` the client supports the new
     `(TextDocumentRegistrationOptions & StaticRegistrationOptions)`
     return value for the corresponding server capability as well. """
-    executionSummarySupport: Optional[bool]
+    executionSummarySupport: Optional[bool] = None
     """ The client supports sending execution summary data per cell. """
 
 
@@ -5358,7 +5377,7 @@ class ShowMessageRequestClientCapabilities(BaseModel):
 
     messageActionItem: Optional[
         "__ShowMessageRequestClientCapabilities_messageActionItem_Type_1"
-    ]
+    ] = None
     """ Capabilities specific to the `MessageActionItem` type. """
 
 
@@ -5379,7 +5398,7 @@ class RegularExpressionsClientCapabilities(BaseModel):
 
     engine: str
     """ The engine's name. """
-    version: Optional[str]
+    version: Optional[str] = None
     """ The engine's version. """
 
 
@@ -5390,9 +5409,9 @@ class MarkdownClientCapabilities(BaseModel):
 
     parser: str
     """ The name of the parser. """
-    version: Optional[str]
+    version: Optional[str] = None
     """ The version of the parser. """
-    allowedTags: Optional[List[str]]
+    allowedTags: Optional[List[str]] = None
     """ A list of HTML tags that the client allows / supports in
     Markdown.
 
@@ -5430,7 +5449,7 @@ class __CodeAction_disabled_Type_1(BaseModel):
 
 
 class __CompletionClientCapabilities_completionItemKind_Type_1(BaseModel):
-    valueSet: Optional[List["CompletionItemKind"]]
+    valueSet: Optional[List["CompletionItemKind"]] = None
     """ The completion item kind values the client supports. When this
     property exists the client also guarantees that it will
     handle values outside its set gracefully and falls back
@@ -5442,39 +5461,39 @@ class __CompletionClientCapabilities_completionItemKind_Type_1(BaseModel):
 
 
 class __CompletionClientCapabilities_completionItem_Type_1(BaseModel):
-    snippetSupport: Optional[bool]
+    snippetSupport: Optional[bool] = None
     """ Client supports snippets as insert text.
 
     A snippet can define tab stops and placeholders with `$1`, `$2`
     and `${3:foo}`. `$0` defines the final tab stop, it defaults to
     the end of the snippet. Placeholders with equal identifiers are linked,
     that is typing in one will update others too. """
-    commitCharactersSupport: Optional[bool]
+    commitCharactersSupport: Optional[bool] = None
     """ Client supports commit characters on a completion item. """
-    documentationFormat: Optional[List["MarkupKind"]]
+    documentationFormat: Optional[List["MarkupKind"]] = None
     """ Client supports the following content formats for the documentation
     property. The order describes the preferred format of the client. """
-    deprecatedSupport: Optional[bool]
+    deprecatedSupport: Optional[bool] = None
     """ Client supports the deprecated property on a completion item. """
-    preselectSupport: Optional[bool]
+    preselectSupport: Optional[bool] = None
     """ Client supports the preselect property on a completion item. """
     tagSupport: Optional[
         "__CompletionClientCapabilities_completionItem_tagSupport_Type_1"
-    ]
+    ] = None
     """ Client supports the tag property on a completion item. Clients supporting
     tags have to handle unknown tags gracefully. Clients especially need to
     preserve unknown tags when sending a completion item back to the server in
     a resolve call.
 
     @since 3.15.0 """
-    insertReplaceSupport: Optional[bool]
+    insertReplaceSupport: Optional[bool] = None
     """ Client support insert replace edit to control different behavior if a
     completion item is inserted in the text or should replace text.
 
     @since 3.16.0 """
     resolveSupport: Optional[
         "__CompletionClientCapabilities_completionItem_resolveSupport_Type_1"
-    ]
+    ] = None
     """ Indicates which properties a client can resolve lazily on a completion
     item. Before version 3.16.0 only the predefined properties `documentation`
     and `details` could be resolved lazily.
@@ -5482,13 +5501,13 @@ class __CompletionClientCapabilities_completionItem_Type_1(BaseModel):
     @since 3.16.0 """
     insertTextModeSupport: Optional[
         "__CompletionClientCapabilities_completionItem_insertTextModeSupport_Type_1"
-    ]
+    ] = None
     """ The client supports the `insertTextMode` property on
     a completion item to override the whitespace handling mode
     as defined by the client (see `insertTextMode`).
 
     @since 3.16.0 """
-    labelDetailsSupport: Optional[bool]
+    labelDetailsSupport: Optional[bool] = None
     """ The client has support for completion item label
     details (see also `CompletionItemLabelDetails`).
 
@@ -5512,7 +5531,7 @@ class __CompletionClientCapabilities_completionItem_tagSupport_Type_1(BaseModel)
 
 
 class __CompletionClientCapabilities_completionList_Type_1(BaseModel):
-    itemDefaults: Optional[List[str]]
+    itemDefaults: Optional[List[str]] = None
     """ The client supports the following itemDefaults on
     a completion list.
 
@@ -5524,25 +5543,25 @@ class __CompletionClientCapabilities_completionList_Type_1(BaseModel):
 
 
 class __CompletionList_itemDefaults_Type_1(BaseModel):
-    commitCharacters: Optional[List[str]]
+    commitCharacters: Optional[List[str]] = None
     """ A default commit character set.
 
     @since 3.17.0 """
     editRange: Optional[
         Union["Range", "__CompletionList_itemDefaults_editRange_Type_1"]
-    ]
+    ] = None
     """ A default edit range.
 
     @since 3.17.0 """
-    insertTextFormat: Optional["InsertTextFormat"]
+    insertTextFormat: Optional["InsertTextFormat"] = None
     """ A default insert text format.
 
     @since 3.17.0 """
-    insertTextMode: Optional["InsertTextMode"]
+    insertTextMode: Optional["InsertTextMode"] = None
     """ A default insert text mode.
 
     @since 3.17.0 """
-    data: Optional["LSPAny"]
+    data: Optional["LSPAny"] = None
     """ A default data value.
 
     @since 3.17.0 """
@@ -5554,7 +5573,7 @@ class __CompletionList_itemDefaults_editRange_Type_1(BaseModel):
 
 
 class __CompletionOptions_completionItem_Type_1(BaseModel):
-    labelDetailsSupport: Optional[bool]
+    labelDetailsSupport: Optional[bool] = None
     """ The server has support for completion item label
     details (see also `CompletionItemLabelDetails`) when
     receiving a completion item in a resolve call.
@@ -5563,7 +5582,7 @@ class __CompletionOptions_completionItem_Type_1(BaseModel):
 
 
 class __CompletionOptions_completionItem_Type_2(BaseModel):
-    labelDetailsSupport: Optional[bool]
+    labelDetailsSupport: Optional[bool] = None
     """ The server has support for completion item label
     details (see also `CompletionItemLabelDetails`) when
     receiving a completion item in a resolve call.
@@ -5572,7 +5591,7 @@ class __CompletionOptions_completionItem_Type_2(BaseModel):
 
 
 class __DocumentSymbolClientCapabilities_symbolKind_Type_1(BaseModel):
-    valueSet: Optional[List["SymbolKind"]]
+    valueSet: Optional[List["SymbolKind"]] = None
     """ The symbol kind values the client supports. When this
     property exists the client also guarantees that it will
     handle values outside its set gracefully and falls back
@@ -5589,7 +5608,7 @@ class __DocumentSymbolClientCapabilities_tagSupport_Type_1(BaseModel):
 
 
 class __FoldingRangeClientCapabilities_foldingRangeKind_Type_1(BaseModel):
-    valueSet: Optional[List["FoldingRangeKind"]]
+    valueSet: Optional[List["FoldingRangeKind"]] = None
     """ The folding range kind values the client supports. When this
     property exists the client also guarantees that it will
     handle values outside its set gracefully and falls back
@@ -5597,7 +5616,7 @@ class __FoldingRangeClientCapabilities_foldingRangeKind_Type_1(BaseModel):
 
 
 class __FoldingRangeClientCapabilities_foldingRange_Type_1(BaseModel):
-    collapsedText: Optional[bool]
+    collapsedText: Optional[bool] = None
     """ If set, the client signals that it supports setting collapsedText on
     folding ranges to display custom labels instead of the default text.
 
@@ -5616,7 +5635,7 @@ class __GeneralClientCapabilities_staleRequestSupport_Type_1(BaseModel):
 class __InitializeResult_serverInfo_Type_1(BaseModel):
     name: str
     """ The name of the server as defined by the server. """
-    version: Optional[str]
+    version: Optional[str] = None
     """ The server's version as defined by the server. """
 
 
@@ -5631,24 +5650,24 @@ class __MarkedString_Type_1(BaseModel):
 
 
 class __NotebookDocumentChangeEvent_cells_Type_1(BaseModel):
-    structure: Optional["__NotebookDocumentChangeEvent_cells_structure_Type_1"]
+    structure: Optional["__NotebookDocumentChangeEvent_cells_structure_Type_1"] = None
     """ Changes to the cell structure to add or
     remove cells. """
-    data: Optional[List["NotebookCell"]]
+    data: Optional[List["NotebookCell"]] = None
     """ Changes to notebook cells properties like its
     kind, execution summary or metadata. """
     textContent: Optional[
         List["__NotebookDocumentChangeEvent_cells_textContent_Type_1"]
-    ]
+    ] = None
     """ Changes to the text content of notebook cells. """
 
 
 class __NotebookDocumentChangeEvent_cells_structure_Type_1(BaseModel):
     array: "NotebookCellArrayChange"
     """ The change to the cell array. """
-    didOpen: Optional[List["TextDocumentItem"]]
+    didOpen: Optional[List["TextDocumentItem"]] = None
     """ Additional opened cell text documents. """
-    didClose: Optional[List["TextDocumentIdentifier"]]
+    didClose: Optional[List["TextDocumentIdentifier"]] = None
     """ Additional closed cell text documents. """
 
 
@@ -5660,25 +5679,25 @@ class __NotebookDocumentChangeEvent_cells_textContent_Type_1(BaseModel):
 class __NotebookDocumentFilter_Type_1(BaseModel):
     notebookType: str
     """ The type of the enclosing notebook. """
-    scheme: Optional[str]
+    scheme: Optional[str] = None
     """ A Uri {@link Uri.scheme scheme}, like `file` or `untitled`. """
-    pattern: Optional[str]
+    pattern: Optional[str] = None
     """ A glob pattern. """
 
 
 class __NotebookDocumentFilter_Type_2(BaseModel):
-    notebookType: Optional[str]
+    notebookType: Optional[str] = None
     """ The type of the enclosing notebook. """
     scheme: str
     """ A Uri {@link Uri.scheme scheme}, like `file` or `untitled`. """
-    pattern: Optional[str]
+    pattern: Optional[str] = None
     """ A glob pattern. """
 
 
 class __NotebookDocumentFilter_Type_3(BaseModel):
-    notebookType: Optional[str]
+    notebookType: Optional[str] = None
     """ The type of the enclosing notebook. """
-    scheme: Optional[str]
+    scheme: Optional[str] = None
     """ A Uri {@link Uri.scheme scheme}, like `file` or `untitled`. """
     pattern: str
     """ A glob pattern. """
@@ -5689,12 +5708,14 @@ class __NotebookDocumentSyncOptions_notebookSelector_Type_1(BaseModel):
     """ The notebook to be synced If a string
     value is provided it matches against the
     notebook type. '*' matches every notebook. """
-    cells: Optional[List["__NotebookDocumentSyncOptions_notebookSelector_cells_Type_1"]]
+    cells: Optional[
+        List["__NotebookDocumentSyncOptions_notebookSelector_cells_Type_1"]
+    ] = None
     """ The cells of the matching notebook to be synced. """
 
 
 class __NotebookDocumentSyncOptions_notebookSelector_Type_2(BaseModel):
-    notebook: Optional[Union[str, "NotebookDocumentFilter"]]
+    notebook: Optional[Union[str, "NotebookDocumentFilter"]] = None
     """ The notebook to be synced If a string
     value is provided it matches against the
     notebook type. '*' matches every notebook. """
@@ -5707,12 +5728,14 @@ class __NotebookDocumentSyncOptions_notebookSelector_Type_3(BaseModel):
     """ The notebook to be synced If a string
     value is provided it matches against the
     notebook type. '*' matches every notebook. """
-    cells: Optional[List["__NotebookDocumentSyncOptions_notebookSelector_cells_Type_3"]]
+    cells: Optional[
+        List["__NotebookDocumentSyncOptions_notebookSelector_cells_Type_3"]
+    ] = None
     """ The cells of the matching notebook to be synced. """
 
 
 class __NotebookDocumentSyncOptions_notebookSelector_Type_4(BaseModel):
-    notebook: Optional[Union[str, "NotebookDocumentFilter"]]
+    notebook: Optional[Union[str, "NotebookDocumentFilter"]] = None
     """ The notebook to be synced If a string
     value is provided it matches against the
     notebook type. '*' matches every notebook. """
@@ -5751,59 +5774,59 @@ class __PublishDiagnosticsClientCapabilities_tagSupport_Type_1(BaseModel):
 
 
 class __SemanticTokensClientCapabilities_requests_Type_1(BaseModel):
-    range: Optional[Union[bool, dict]]
+    range: Optional[Union[bool, dict]] = None
     """ The client will send the `textDocument/semanticTokens/range` request if
     the server provides a corresponding handler. """
     full: Optional[
         Union[bool, "__SemanticTokensClientCapabilities_requests_full_Type_1"]
-    ]
+    ] = None
     """ The client will send the `textDocument/semanticTokens/full` request if
     the server provides a corresponding handler. """
 
 
 class __SemanticTokensClientCapabilities_requests_full_Type_1(BaseModel):
-    delta: Optional[bool]
+    delta: Optional[bool] = None
     """ The client will send the `textDocument/semanticTokens/full/delta` request if
     the server provides a corresponding handler. """
 
 
 class __SemanticTokensOptions_full_Type_1(BaseModel):
-    delta: Optional[bool]
+    delta: Optional[bool] = None
     """ The server supports deltas for full documents. """
 
 
 class __SemanticTokensOptions_full_Type_2(BaseModel):
-    delta: Optional[bool]
+    delta: Optional[bool] = None
     """ The server supports deltas for full documents. """
 
 
 class __ServerCapabilities_workspace_Type_1(BaseModel):
-    workspaceFolders: Optional["WorkspaceFoldersServerCapabilities"]
+    workspaceFolders: Optional["WorkspaceFoldersServerCapabilities"] = None
     """ The server supports workspace folder.
 
     @since 3.6.0 """
-    fileOperations: Optional["FileOperationOptions"]
+    fileOperations: Optional["FileOperationOptions"] = None
     """ The server is interested in notifications/requests for operations on files.
 
     @since 3.16.0 """
 
 
 class __ShowMessageRequestClientCapabilities_messageActionItem_Type_1(BaseModel):
-    additionalPropertiesSupport: Optional[bool]
+    additionalPropertiesSupport: Optional[bool] = None
     """ Whether the client supports additional attributes which
     are preserved and send back to the server in the
     request's response. """
 
 
 class __SignatureHelpClientCapabilities_signatureInformation_Type_1(BaseModel):
-    documentationFormat: Optional[List["MarkupKind"]]
+    documentationFormat: Optional[List["MarkupKind"]] = None
     """ Client supports the following content formats for the documentation
     property. The order describes the preferred format of the client. """
     parameterInformation: Optional[
         "__SignatureHelpClientCapabilities_signatureInformation_parameterInformation_Type_1"
-    ]
+    ] = None
     """ Client capabilities specific to parameter information. """
-    activeParameterSupport: Optional[bool]
+    activeParameterSupport: Optional[bool] = None
     """ The client supports the `activeParameter` property on `SignatureInformation`
     literal.
 
@@ -5813,7 +5836,7 @@ class __SignatureHelpClientCapabilities_signatureInformation_Type_1(BaseModel):
 class __SignatureHelpClientCapabilities_signatureInformation_parameterInformation_Type_1(
     BaseModel
 ):
-    labelOffsetSupport: Optional[bool]
+    labelOffsetSupport: Optional[bool] = None
     """ The client supports processing label offsets instead of a
     simple label string.
 
@@ -5823,7 +5846,7 @@ class __SignatureHelpClientCapabilities_signatureInformation_parameterInformatio
 class __TextDocumentContentChangeEvent_Type_1(BaseModel):
     range: "Range"
     """ The range of the document that changed. """
-    rangeLength: Optional[NonNegativeInt]
+    rangeLength: Optional[Uint] = None
     """ The optional length of the range that got replaced.
 
     @deprecated use range instead. """
@@ -5839,32 +5862,32 @@ class __TextDocumentContentChangeEvent_Type_2(BaseModel):
 class __TextDocumentFilter_Type_1(BaseModel):
     language: str
     """ A language id, like `typescript`. """
-    scheme: Optional[str]
+    scheme: Optional[str] = None
     """ A Uri {@link Uri.scheme scheme}, like `file` or `untitled`. """
-    pattern: Optional[str]
+    pattern: Optional[str] = None
     """ A glob pattern, like `*.{ts,js}`. """
 
 
 class __TextDocumentFilter_Type_2(BaseModel):
-    language: Optional[str]
+    language: Optional[str] = None
     """ A language id, like `typescript`. """
     scheme: str
     """ A Uri {@link Uri.scheme scheme}, like `file` or `untitled`. """
-    pattern: Optional[str]
+    pattern: Optional[str] = None
     """ A glob pattern, like `*.{ts,js}`. """
 
 
 class __TextDocumentFilter_Type_3(BaseModel):
-    language: Optional[str]
+    language: Optional[str] = None
     """ A language id, like `typescript`. """
-    scheme: Optional[str]
+    scheme: Optional[str] = None
     """ A Uri {@link Uri.scheme scheme}, like `file` or `untitled`. """
     pattern: str
     """ A glob pattern, like `*.{ts,js}`. """
 
 
 class __WorkspaceEditClientCapabilities_changeAnnotationSupport_Type_1(BaseModel):
-    groupsOnLabel: Optional[bool]
+    groupsOnLabel: Optional[bool] = None
     """ Whether the client groups edits with equal labels into tree nodes,
     for instance all edits labelled with "Changes in Strings" would
     be a tree node. """
@@ -5877,7 +5900,7 @@ class __WorkspaceSymbolClientCapabilities_resolveSupport_Type_1(BaseModel):
 
 
 class __WorkspaceSymbolClientCapabilities_symbolKind_Type_1(BaseModel):
-    valueSet: Optional[List["SymbolKind"]]
+    valueSet: Optional[List["SymbolKind"]] = None
     """ The symbol kind values the client supports. When this
     property exists the client also guarantees that it will
     handle values outside its set gracefully and falls back
@@ -5900,5 +5923,5 @@ class __WorkspaceSymbol_location_Type_1(BaseModel):
 class ___InitializeParams_clientInfo_Type_1(BaseModel):
     name: str
     """ The name of the client as defined by the client. """
-    version: Optional[str]
+    version: Optional[str] = None
     """ The client's version as defined by the client. """

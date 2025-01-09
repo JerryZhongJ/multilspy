@@ -458,7 +458,9 @@ class LanguageServer:
                         os.path.relpath(absolutePath, self.repository_root_path)
                     ).name
 
-                    range = multilspy_types.Range.model_validate(item.targetRange)
+                    range = multilspy_types.Range.model_validate(
+                        item.targetRange.model_dump()
+                    )
                     ret.append(
                         multilspy_types.Location(
                             uri=uri,
@@ -692,7 +694,9 @@ class LanguageServer:
                         tree.children = None
 
                     l.append(
-                        multilspy_types.UnifiedSymbolInformation.model_validate(tree)
+                        multilspy_types.UnifiedSymbolInformation.model_validate(
+                            tree.model_dump()
+                        )
                     )
                     for child in children:
                         l.extend(visit_tree_nodes_and_build_tree_repr(child))
@@ -701,7 +705,9 @@ class LanguageServer:
                 ret.extend(visit_tree_nodes_and_build_tree_repr(item))
             else:
                 ret.append(
-                    multilspy_types.UnifiedSymbolInformation.model_validate(item)
+                    multilspy_types.UnifiedSymbolInformation.model_validate(
+                        item.model_dump()
+                    )
                 )
 
         return ret, l_tree
@@ -738,7 +744,11 @@ class LanguageServer:
                 )
             )
 
-        return multilspy_types.Hover.model_validate(response) if response else None
+        return (
+            multilspy_types.Hover.model_validate(response.model_dump())
+            if response
+            else None
+        )
 
 
 @ensure_all_methods_implemented(LanguageServer)

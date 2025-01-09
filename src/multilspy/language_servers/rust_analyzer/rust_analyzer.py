@@ -10,7 +10,14 @@ import pathlib
 import stat
 
 from multilspy.language_server import LanguageServer
-from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
+from multilspy.lsp_protocol_handler.lsp_types import (
+    CompletionOptions,
+    InitializedParams,
+    InitializeParams,
+    InitializeResult,
+    TextDocumentSyncKind,
+    TextDocumentSyncOptions,
+)
 from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
 from multilspy.multilspy_config import MultilspyConfig
 from multilspy.multilspy_logger import MultilspyLogger
@@ -124,23 +131,9 @@ class RustAnalyzer(LanguageServer):
         assert d["workspaceFolders"][0]["name"] == "$name"
         d["workspaceFolders"][0]["name"] = os.path.basename(repository_absolute_path)
 
-        return d
+        return InitializeParams.model_validate(d)
 
     async def start(self):
-        async def register_capability_handler(params):
-            assert "registrations" in params
-            for registration in params["registrations"]:
-                if registration["method"] == "workspace/executeCommand":
-                    self.initialize_searcher_command_available.set()
-                    self.resolve_main_method_available.set()
-            return
-
-        async def lang_status_handler(params):
-            # TODO: Should we wait for
-            # server -> client: {'jsonrpc': '2.0', 'method': 'language/status', 'params': {'type': 'ProjectStatus', 'message': 'OK'}}
-            # Before proceeding?
-            if params["type"] == "ServiceReady" and params["message"] == "ServiceReady":
-                self.service_ready_event.set()
 
         async def execute_client_command_handler(params):
             return []
@@ -155,8 +148,8 @@ class RustAnalyzer(LanguageServer):
         async def window_log_message(msg):
             self.logger.log(f"LSP: window/logMessage: {msg}", logging.INFO)
 
-        self.server.on_request("client/registerCapability", register_capability_handler)
-        self.server.on_notification("language/status", lang_status_handler)
+        self.server.on_request("client/registerCapability", do_nothing)
+        self.server.on_notification("language/status", do_nothing)
         self.server.on_notification("window/logMessage", window_log_message)
         self.server.on_request(
             "workspace/executeClientCommand", execute_client_command_handler
@@ -175,15 +168,28 @@ class RustAnalyzer(LanguageServer):
             "Sending initialize request from LSP client to LSP server and awaiting response",
             logging.INFO,
         )
-        init_response = await self.server.send.initialize(initialize_params)
-        assert init_response["capabilities"]["textDocumentSync"]["change"] == 2
-        assert "completionProvider" in init_response["capabilities"]
-        assert init_response["capabilities"]["completionProvider"] == {
-            "resolveProvider": True,
-            "triggerCharacters": [":", ".", "'", "("],
-            "completionItem": {"labelDetailsSupport": True},
-        }
-        self.server.notify.initialized({})
+        init_response: InitializeResult = await self.server.send.initialize(
+            initialize_params
+        )
+        assert (
+            isinstance(
+                init_response.capabilities.textDocumentSync, TextDocumentSyncOptions
+            )
+            and init_response.capabilities.textDocumentSync.change
+            == TextDocumentSyncKind.Incremental
+        )
+        assert init_response.capabilities.completionProvider
+        assert (
+            init_response.capabilities.completionProvider
+            == CompletionOptions.model_validate(
+                {
+                    "resolveProvider": True,
+                    "triggerCharacters": [":", ".", "'", "("],
+                    "completionItem": {"labelDetailsSupport": True},
+                }
+            )
+        )
+        self.server.notify.initialized(InitializedParams())
         self.completions_available.set()
 
         await self.server_ready.wait()
