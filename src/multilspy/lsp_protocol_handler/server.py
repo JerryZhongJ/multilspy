@@ -32,13 +32,11 @@ import asyncio
 import dataclasses
 import json
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 
 from .lsp_requests import LspNotification, LspRequest
-from .lsp_types import ErrorCodes
+from .lsp_types import ErrorCodes, PayloadLike, StringDict
 
-StringDict = Dict[str, Any]
-PayloadLike = Union[List[StringDict], StringDict, None]
 CONTENT_LENGTH = "Content-Length: "
 ENCODING = "utf-8"
 
@@ -373,7 +371,9 @@ class LanguageServerHandler:
         )
         self.task_counter += 1
 
-    async def send_request(self, method: str, params: Optional[dict] = None) -> None:
+    async def send_request(
+        self, method: str, params: Optional[dict] = None
+    ) -> Optional[PayloadLike]:
         """
         Send request to the server, register the request id, and wait for the response
         """
@@ -383,7 +383,7 @@ class LanguageServerHandler:
         self._response_handlers[request_id] = request
         async with request.cv:
             await self._send_payload(make_request(method, request_id, params))
-            await request.cv.wait()
+            await asyncio.wait_for(request.cv.wait(), timeout=5)
         if isinstance(request.error, Error):
             raise request.error
         return request.result

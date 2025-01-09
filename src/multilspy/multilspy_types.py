@@ -4,15 +4,19 @@ Defines wrapper objects around the types returned by LSP to ensure decoupling be
 
 from __future__ import annotations
 
-from enum import IntEnum, Enum
-from typing_extensions import NotRequired, TypedDict, List, Dict, Union
+from enum import Enum, IntEnum
+from typing import Optional
+
+from pydantic import BaseModel, NonNegativeInt
+from typing_extensions import Dict, List, Union
 
 URI = str
 DocumentUri = str
 Uint = int
 RegExp = str
 
-class Position(TypedDict):
+
+class Position(BaseModel):
     """Position in a text document expressed as zero-based line and character
     offset. Prior to 3.17 the offsets were always based on a UTF-16 string
     representation. So a string of the form `a𐐀b` the character offset of the
@@ -41,12 +45,12 @@ class Position(TypedDict):
 
     @since 3.17.0 - support for negotiated position encoding."""
 
-    line: Uint
+    line: NonNegativeInt
     """ Line position in a document (zero-based).
 
     If a line number is greater than the number of lines in a document, it defaults back to the number of lines in the document.
     If a line number is negative, it defaults to 0. """
-    character: Uint
+    character: NonNegativeInt
     """ Character offset on a line in a document (zero-based).
 
     The meaning of this offset is determined by the negotiated
@@ -56,7 +60,7 @@ class Position(TypedDict):
     line length. """
 
 
-class Range(TypedDict):
+class Range(BaseModel):
     """A range in a text document expressed as (zero-based) start and end positions.
 
     If you want to specify a range that contains a line including the line ending
@@ -75,7 +79,7 @@ class Range(TypedDict):
     """ The range's end position. """
 
 
-class Location(TypedDict):
+class Location(BaseModel):
     """Represents a location inside a resource, such as a line
     inside a text file."""
 
@@ -83,6 +87,7 @@ class Location(TypedDict):
     range: Range
     absolutePath: str
     relativePath: str
+
 
 class CompletionItemKind(IntEnum):
     """The kind of a completion entry."""
@@ -113,7 +118,8 @@ class CompletionItemKind(IntEnum):
     Operator = 24
     TypeParameter = 25
 
-class CompletionItem(TypedDict):
+
+class CompletionItem(BaseModel):
     """A completion item represents a text snippet that is
     proposed to complete text that is being typed."""
 
@@ -127,9 +133,10 @@ class CompletionItem(TypedDict):
     """ The kind of this completion item. Based of the kind
     an icon is chosen by the editor. """
 
-    detail: NotRequired[str]
+    detail: Optional[str]
     """ A human-readable string with additional information
     about this item, like type or symbol information. """
+
 
 class SymbolKind(IntEnum):
     """A symbol kind."""
@@ -161,6 +168,7 @@ class SymbolKind(IntEnum):
     Operator = 25
     TypeParameter = 26
 
+
 class SymbolTag(IntEnum):
     """Symbol tags are extra annotations that tweak the rendering of a symbol.
 
@@ -169,15 +177,16 @@ class SymbolTag(IntEnum):
     Deprecated = 1
     """ Render a symbol as obsolete, usually using a strike-out. """
 
-class UnifiedSymbolInformation(TypedDict):
+
+class UnifiedSymbolInformation(BaseModel):
     """Represents information about programming constructs like variables, classes,
     interfaces etc."""
 
-    deprecated: NotRequired[bool]
+    deprecated: Optional[bool]
     """ Indicates if this symbol is deprecated.
 
     @deprecated Use tags instead """
-    location: NotRequired[Location]
+    location: Optional[Location]
     """ The location of this symbol. The location's range is used by a tool
     to reveal the location in the editor. If the symbol is selected in the
     tool the range's start information is used to position the cursor. So
@@ -191,28 +200,30 @@ class UnifiedSymbolInformation(TypedDict):
     """ The name of this symbol. """
     kind: SymbolKind
     """ The kind of this symbol. """
-    tags: NotRequired[List[SymbolTag]]
+    tags: Optional[List[SymbolTag]]
     """ Tags for this symbol.
 
     @since 3.16.0 """
-    containerName: NotRequired[str]
+    containerName: Optional[str]
     """ The name of the symbol containing this symbol. This information is for
     user interface purposes (e.g. to render a qualifier in the user interface
     if necessary). It can't be used to re-infer a hierarchy for the document
     symbols. """
 
-    detail: NotRequired[str]
+    detail: Optional[str]
     """ More detail for this symbol, e.g the signature of a function. """
-    
-    range: NotRequired[Range]
+
+    range: Optional[Range]
     """ The range enclosing this symbol not including leading/trailing whitespace but everything else
     like comments. This information is typically used to determine if the clients cursor is
     inside the symbol to reveal in the symbol in the UI. """
-    selectionRange: NotRequired[Range]
+    selectionRange: Optional[Range]
     """ The range that should be selected and revealed when this symbol is being picked, e.g the name of a function.
     Must be contained by the `range`. """
 
-TreeRepr = Dict[int, List['TreeRepr']]
+
+TreeRepr = Dict[int, List["TreeRepr"]]
+
 
 class MarkupKind(Enum):
     """Describes the content type that a client supports in various
@@ -226,9 +237,11 @@ class MarkupKind(Enum):
     Markdown = "markdown"
     """ Markdown is supported as a content format """
 
-class __MarkedString_Type_1(TypedDict):
+
+class __MarkedString_Type_1(BaseModel):
     language: str
     value: str
+
 
 MarkedString = Union[str, "__MarkedString_Type_1"]
 """ MarkedString can be used to render human readable text. It is either a markdown string
@@ -244,7 +257,8 @@ ${value}
 Note that markdown strings will be sanitized - that means html will be escaped.
 @deprecated use MarkupContent instead. """
 
-class MarkupContent(TypedDict):
+
+class MarkupContent(BaseModel):
     """A `MarkupContent` literal represents a string value which content is interpreted base on its
     kind flag. Currently the protocol supports `plaintext` and `markdown` as markup kinds.
 
@@ -273,11 +287,12 @@ class MarkupContent(TypedDict):
     value: str
     """ The content itself """
 
-class Hover(TypedDict):
+
+class Hover(BaseModel):
     """The result of a hover request."""
 
     contents: Union["MarkupContent", "MarkedString", List["MarkedString"]]
     """ The hover's content """
-    range: NotRequired["Range"]
+    range: Optional["Range"]
     """ An optional range inside the text document that is used to
     visualize the hover, e.g. by changing the background color. """

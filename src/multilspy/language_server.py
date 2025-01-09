@@ -7,7 +7,6 @@ The details of Language Specific configuration are not exposed to the user.
 
 import asyncio
 import dataclasses
-import json
 import logging
 import os
 import pathlib
@@ -225,14 +224,16 @@ class LanguageServer:
                 file_buffer.version += 1
                 file_buffer.contents = contents
             self.server.notify.did_open_text_document(
-                {
-                    LSPConstants.TEXT_DOCUMENT: {
-                        LSPConstants.URI: uri,
-                        LSPConstants.LANGUAGE_ID: self.language_id,
-                        LSPConstants.VERSION: file_buffer.version,
-                        LSPConstants.TEXT: contents,
+                LSPTypes.DidOpenTextDocumentParams.model_validate(
+                    {
+                        LSPConstants.TEXT_DOCUMENT: {
+                            LSPConstants.URI: uri,
+                            LSPConstants.LANGUAGE_ID: self.language_id,
+                            LSPConstants.VERSION: file_buffer.version,
+                            LSPConstants.TEXT: contents,
+                        }
                     }
-                }
+                )
             )
 
         file_buffer.ref_count += 1
@@ -242,11 +243,13 @@ class LanguageServer:
             file_buffer.ref_count -= 1
             if not file_buffer.is_referenced():
                 self.server.notify.did_close_text_document(
-                    {
-                        LSPConstants.TEXT_DOCUMENT: {
-                            LSPConstants.URI: uri,
+                    LSPTypes.DidCloseTextDocumentParams.model_validate(
+                        {
+                            LSPConstants.TEXT_DOCUMENT: {
+                                LSPConstants.URI: uri,
+                            }
                         }
-                    }
+                    )
                 )
 
     def insert_text_at_position(
@@ -287,21 +290,23 @@ class LanguageServer:
             + file_buffer.contents[change_index:]
         )
         self.server.notify.did_change_text_document(
-            {
-                LSPConstants.TEXT_DOCUMENT: {
-                    LSPConstants.VERSION: file_buffer.version,
-                    LSPConstants.URI: file_buffer.uri,
-                },
-                LSPConstants.CONTENT_CHANGES: [
-                    {
-                        LSPConstants.RANGE: {
-                            "start": {"line": line, "character": column},
-                            "end": {"line": line, "character": column},
-                        },
-                        "text": text_to_be_inserted,
-                    }
-                ],
-            }
+            LSPTypes.DidChangeTextDocumentParams.model_validate(
+                {
+                    LSPConstants.TEXT_DOCUMENT: {
+                        LSPConstants.VERSION: file_buffer.version,
+                        LSPConstants.URI: file_buffer.uri,
+                    },
+                    LSPConstants.CONTENT_CHANGES: [
+                        {
+                            LSPConstants.RANGE: {
+                                "start": {"line": line, "character": column},
+                                "end": {"line": line, "character": column},
+                            },
+                            LSPConstants.TEXT: text_to_be_inserted,
+                        }
+                    ],
+                }
+            )
         )
         new_l, new_c = TextUtils.get_updated_position_from_line_and_column_and_edit(
             line, column, text_to_be_inserted
@@ -335,25 +340,30 @@ class LanguageServer:
         file_buffer = self.file_buffers[uri]
         file_buffer.version += 1
         del_start_idx = TextUtils.get_index_from_line_col(
-            file_buffer.contents, start["line"], start["character"]
+            file_buffer.contents, start.line, start.character
         )
         del_end_idx = TextUtils.get_index_from_line_col(
-            file_buffer.contents, end["line"], end["character"]
+            file_buffer.contents, end.line, end.character
         )
         deleted_text = file_buffer.contents[del_start_idx:del_end_idx]
         file_buffer.contents = (
             file_buffer.contents[:del_start_idx] + file_buffer.contents[del_end_idx:]
         )
         self.server.notify.did_change_text_document(
-            {
-                LSPConstants.TEXT_DOCUMENT: {
-                    LSPConstants.VERSION: file_buffer.version,
-                    LSPConstants.URI: file_buffer.uri,
-                },
-                LSPConstants.CONTENT_CHANGES: [
-                    {LSPConstants.RANGE: {"start": start, "end": end}, "text": ""}
-                ],
-            }
+            LSPTypes.DidChangeTextDocumentParams.model_validate(
+                {
+                    LSPConstants.TEXT_DOCUMENT: {
+                        LSPConstants.VERSION: file_buffer.version,
+                        LSPConstants.URI: file_buffer.uri,
+                    },
+                    LSPConstants.CONTENT_CHANGES: [
+                        {
+                            LSPConstants.RANGE: {"start": start, "end": end},
+                            LSPConstants.TEXT: "",
+                        }
+                    ],
+                }
+            )
         )
         return deleted_text
 
@@ -405,70 +415,73 @@ class LanguageServer:
         with self.file_opened(relative_file_path):
             # sending request to the language server and waiting for response
             response = await self.server.send.definition(
-                {
-                    LSPConstants.TEXT_DOCUMENT: {
-                        LSPConstants.URI: pathlib.Path(
-                            str(PurePath(self.repository_root_path, relative_file_path))
-                        ).as_uri()
-                    },
-                    LSPConstants.POSITION: {
-                        LSPConstants.LINE: line,
-                        LSPConstants.CHARACTER: column,
-                    },
-                }
+                LSPTypes.DefinitionParams.model_validate(
+                    {
+                        LSPConstants.TEXT_DOCUMENT: {
+                            LSPConstants.URI: pathlib.Path(
+                                str(
+                                    PurePath(
+                                        self.repository_root_path, relative_file_path
+                                    )
+                                )
+                            ).as_uri()
+                        },
+                        LSPConstants.POSITION: {
+                            LSPConstants.LINE: line,
+                            LSPConstants.CHARACTER: column,
+                        },
+                    }
+                )
             )
 
         ret: List[multilspy_types.Location] = []
         if isinstance(response, list):
             # response is either of type Location[] or LocationLink[]
             for item in response:
-                assert isinstance(item, dict)
-                if LSPConstants.URI in item and LSPConstants.RANGE in item:
-                    new_item: multilspy_types.Location = {}
-                    new_item.update(item)
-                    new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
-                    new_item["relativePath"] = str(
-                        PurePath(
-                            os.path.relpath(
-                                new_item["absolutePath"], self.repository_root_path
-                            )
+                if isinstance(item, LSPTypes.Location):
+                    absolute_path = PathUtils.uri_to_path(item.uri)
+                    relative_path = PurePath(
+                        os.path.relpath(absolute_path, self.repository_root_path)
+                    ).name
+                    ret.append(
+                        multilspy_types.Location(
+                            **item.model_dump(),
+                            absolutePath=absolute_path,
+                            relativePath=relative_path,
                         )
                     )
-                    ret.append(multilspy_types.Location(new_item))
-                elif (
-                    LSPConstants.ORIGIN_SELECTION_RANGE in item
-                    and LSPConstants.TARGET_URI in item
-                    and LSPConstants.TARGET_RANGE in item
-                    and LSPConstants.TARGET_SELECTION_RANGE in item
-                ):
-                    new_item: multilspy_types.Location = {}
-                    new_item["uri"] = item[LSPConstants.TARGET_URI]
-                    new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
-                    new_item["relativePath"] = str(
-                        PurePath(
-                            os.path.relpath(
-                                new_item["absolutePath"], self.repository_root_path
-                            )
+                elif isinstance(item, LSPTypes.LocationLink):
+
+                    uri = item.targetUri
+                    absolutePath = PathUtils.uri_to_path(uri)
+                    relativePath = PurePath(
+                        os.path.relpath(absolutePath, self.repository_root_path)
+                    ).name
+
+                    range = multilspy_types.Range.model_validate(item.targetRange)
+                    ret.append(
+                        multilspy_types.Location(
+                            uri=uri,
+                            range=range,
+                            absolutePath=absolutePath,
+                            relativePath=relativePath,
                         )
                     )
-                    new_item["range"] = item[LSPConstants.TARGET_SELECTION_RANGE]
-                    ret.append(multilspy_types.Location(**new_item))
                 else:
                     assert False, f"Unexpected response from Language Server: {item}"
-        elif isinstance(response, dict):
+        elif isinstance(response, LSPTypes.Location):
             # response is of type Location
-            assert LSPConstants.URI in response
-            assert LSPConstants.RANGE in response
-
-            new_item: multilspy_types.Location = {}
-            new_item.update(response)
-            new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
-            new_item["relativePath"] = str(
-                PurePath(
-                    os.path.relpath(new_item["absolutePath"], self.repository_root_path)
+            absolute_path = PathUtils.uri_to_path(response.uri)
+            relative_path = PurePath(
+                os.path.relpath(absolute_path, self.repository_root_path)
+            ).name
+            ret.append(
+                multilspy_types.Location(
+                    **response.model_dump(),
+                    absolutePath=absolute_path,
+                    relativePath=relative_path,
                 )
             )
-            ret.append(multilspy_types.Location(**new_item))
         else:
             assert False, f"Unexpected response from Language Server: {response}"
 
@@ -498,34 +511,37 @@ class LanguageServer:
         with self.file_opened(relative_file_path):
             # sending request to the language server and waiting for response
             response = await self.server.send.references(
-                {
-                    "context": {"includeDeclaration": False},
-                    "textDocument": {
-                        "uri": pathlib.Path(
-                            os.path.join(self.repository_root_path, relative_file_path)
-                        ).as_uri()
-                    },
-                    "position": {"line": line, "character": column},
-                }
+                LSPTypes.ReferenceParams.model_validate(
+                    {
+                        "context": {"includeDeclaration": False},
+                        "textDocument": {
+                            "uri": pathlib.Path(
+                                os.path.join(
+                                    self.repository_root_path, relative_file_path
+                                )
+                            ).as_uri()
+                        },
+                        "position": {"line": line, "character": column},
+                    }
+                )
             )
 
         ret: List[multilspy_types.Location] = []
-        assert isinstance(response, list)
+        if response is None:
+            return ret
         for item in response:
-            assert isinstance(item, dict)
-            assert LSPConstants.URI in item
-            assert LSPConstants.RANGE in item
 
-            new_item: multilspy_types.Location = {}
-            new_item.update(item)
-            new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
-            new_item["relativePath"] = str(
-                PurePath(
-                    os.path.relpath(new_item["absolutePath"], self.repository_root_path)
+            absolute_path = PathUtils.uri_to_path(item.uri)
+            relative_path = PurePath(
+                os.path.relpath(absolute_path, self.repository_root_path)
+            ).name
+            ret.append(
+                multilspy_types.Location(
+                    **item.model_dump(),
+                    absolutePath=absolute_path,
+                    relativePath=relative_path,
                 )
             )
-            ret.append(multilspy_types.Location(**new_item))
-
         return ret
 
     async def request_completions(
@@ -551,99 +567,90 @@ class LanguageServer:
                     os.path.join(self.repository_root_path, relative_file_path)
                 ).as_uri()
             ]
-            completion_params: LSPTypes.CompletionParams = {
-                "position": {"line": line, "character": column},
-                "textDocument": {"uri": open_file_buffer.uri},
-                "context": {"triggerKind": LSPTypes.CompletionTriggerKind.Invoked},
-            }
-            response: Union[
-                List[LSPTypes.CompletionItem], LSPTypes.CompletionList, None
-            ] = None
+            completion_params = LSPTypes.CompletionParams.model_validate(
+                {
+                    "position": {"line": line, "character": column},
+                    "textDocument": {"uri": open_file_buffer.uri},
+                    "context": {"triggerKind": LSPTypes.CompletionTriggerKind.Invoked},
+                }
+            )
+            response: Optional[LSPTypes.CompletionList] = None
 
             num_retries = 0
-            while response is None or (response["isIncomplete"] and num_retries < 30):
+            while response is None or (response.isIncomplete and num_retries < 30):
                 await self.completions_available.wait()
-                response: Union[
-                    List[LSPTypes.CompletionItem], LSPTypes.CompletionList, None
+                tmp: Optional[
+                    List[LSPTypes.CompletionItem] | LSPTypes.CompletionList
                 ] = await self.server.send.completion(completion_params)
-                if isinstance(response, list):
-                    response = {"items": response, "isIncomplete": False}
+                if isinstance(tmp, list):
+                    response = LSPTypes.CompletionList.model_validate(
+                        {"items": tmp, "isIncomplete": False}
+                    )
                 num_retries += 1
 
             # TODO: Understand how to appropriately handle `isIncomplete`
-            if response is None or (
-                response["isIncomplete"] and not (allow_incomplete)
-            ):
+            if response is None or (response.isIncomplete and not (allow_incomplete)):
                 return []
-
-            if "items" in response:
-                response = response["items"]
-
-            response: List[LSPTypes.CompletionItem] = response
-
-            # TODO: Handle the case when the completion is a keyword
-            items = [
-                item
-                for item in response
-                if item["kind"] != LSPTypes.CompletionItemKind.Keyword
-            ]
+            responses: List[LSPTypes.CompletionItem] = response.items
 
             completions_list: List[multilspy_types.CompletionItem] = []
 
-            for item in items:
-                assert "insertText" in item or "textEdit" in item
-                assert "kind" in item
-                completion_item = {}
-                if "detail" in item:
-                    completion_item["detail"] = item["detail"]
+            for item in responses:
 
-                if "label" in item:
-                    completion_item["completionText"] = item["label"]
-                    completion_item["kind"] = item["kind"]
-                elif "insertText" in item:
-                    completion_item["completionText"] = item["insertText"]
-                    completion_item["kind"] = item["kind"]
-                elif "textEdit" in item and "newText" in item["textEdit"]:
-                    completion_item["completionText"] = item["textEdit"]["newText"]
-                    completion_item["kind"] = item["kind"]
-                elif "textEdit" in item and "range" in item["textEdit"]:
+                if not item.kind:
+                    continue
+                # TODO: Handle the case when the completion is a keyword
+                if item.kind == LSPTypes.CompletionItemKind.Keyword:
+                    continue
+                kind: multilspy_types.CompletionItemKind = item.kind  # type: ignore
+                if item.labelDetails is None:
+                    completion_item = multilspy_types.CompletionItem(
+                        completionText=item.label, kind=kind, detail=item.detail
+                    )
+
+                elif item.insertText:
+                    completion_item = multilspy_types.CompletionItem(
+                        completionText=item.insertText,
+                        kind=kind,
+                        detail=item.detail,
+                    )
+                elif item.textEdit:
+                    assert isinstance(item.textEdit, LSPTypes.TextEdit)
                     new_dot_lineno, new_dot_colno = (
-                        completion_params["position"]["line"],
-                        completion_params["position"]["character"],
+                        completion_params.position.line,
+                        completion_params.position.character,
                     )
                     assert all(
                         (
-                            item["textEdit"]["range"]["start"]["line"]
-                            == new_dot_lineno,
-                            item["textEdit"]["range"]["start"]["character"]
-                            == new_dot_colno,
-                            item["textEdit"]["range"]["start"]["line"]
-                            == item["textEdit"]["range"]["end"]["line"],
-                            item["textEdit"]["range"]["start"]["character"]
-                            == item["textEdit"]["range"]["end"]["character"],
+                            item.textEdit.range.start.line == new_dot_lineno,
+                            item.textEdit.range.start.character == new_dot_colno,
+                            item.textEdit.range.start.line
+                            == item.textEdit.range.end.line,
+                            item.textEdit.range.start.character
+                            == item.textEdit.range.end.character,
                         )
                     )
+                    completion_item = multilspy_types.CompletionItem(
+                        completionText=item.textEdit.newText,
+                        kind=kind,
+                        detail=item.detail,
+                    )
 
-                    completion_item["completionText"] = item["textEdit"]["newText"]
-                    completion_item["kind"] = item["kind"]
-                elif "textEdit" in item and "insert" in item["textEdit"]:
-                    assert False
                 else:
                     assert False
 
-                completion_item = multilspy_types.CompletionItem(**completion_item)
                 completions_list.append(completion_item)
-
-            return [
-                json.loads(json_repr)
-                for json_repr in set(
-                    [json.dumps(item, sort_keys=True) for item in completions_list]
-                )
-            ]
+            return completions_list
+            # return [
+            #     json.loads(json_repr)
+            #     for json_repr in set(
+            #         [json.dumps(item, sort_keys=True) for item in completions_list]
+            #     )
+            # ]
 
     async def request_document_symbols(self, relative_file_path: str) -> Tuple[
         List[multilspy_types.UnifiedSymbolInformation],
-        Union[List[multilspy_types.TreeRepr], None],
+        Optional[List[multilspy_types.TreeRepr]],
     ]:
         """
         Raise a [textDocument/documentSymbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentSymbol) request to the Language Server
@@ -655,41 +662,47 @@ class LanguageServer:
         """
         with self.file_opened(relative_file_path):
             response = await self.server.send.document_symbol(
-                {
-                    "textDocument": {
-                        "uri": pathlib.Path(
-                            os.path.join(self.repository_root_path, relative_file_path)
-                        ).as_uri()
+                LSPTypes.DocumentSymbolParams.model_validate(
+                    {
+                        "textDocument": {
+                            "uri": pathlib.Path(
+                                os.path.join(
+                                    self.repository_root_path, relative_file_path
+                                )
+                            ).as_uri()
+                        }
                     }
-                }
+                )
             )
 
         ret: List[multilspy_types.UnifiedSymbolInformation] = []
         l_tree = None
-        assert isinstance(response, list)
+        assert response is not None
         for item in response:
-            assert isinstance(item, dict)
-            assert LSPConstants.NAME in item
-            assert LSPConstants.KIND in item
 
-            if LSPConstants.CHILDREN in item:
+            if isinstance(item, LSPTypes.DocumentSymbol) and item.children:
                 # TODO: l_tree should be a list of TreeRepr. Define the following function to return TreeRepr as well
 
                 def visit_tree_nodes_and_build_tree_repr(
                     tree: LSPTypes.DocumentSymbol,
                 ) -> List[multilspy_types.UnifiedSymbolInformation]:
                     l: List[multilspy_types.UnifiedSymbolInformation] = []
-                    children = tree["children"] if "children" in tree else []
-                    if "children" in tree:
-                        del tree["children"]
-                    l.append(multilspy_types.UnifiedSymbolInformation(**tree))
+                    children = tree.children if tree.children else []
+                    if tree.children:
+                        tree.children = None
+
+                    l.append(
+                        multilspy_types.UnifiedSymbolInformation.model_validate(tree)
+                    )
                     for child in children:
                         l.extend(visit_tree_nodes_and_build_tree_repr(child))
                     return l
 
                 ret.extend(visit_tree_nodes_and_build_tree_repr(item))
             else:
-                ret.append(multilspy_types.UnifiedSymbolInformation(**item))
+                ret.append(
+                    multilspy_types.UnifiedSymbolInformation.model_validate(item)
+                )
 
         return ret, l_tree
 
@@ -708,25 +721,24 @@ class LanguageServer:
         """
         with self.file_opened(relative_file_path):
             response = await self.server.send.hover(
-                {
-                    "textDocument": {
-                        "uri": pathlib.Path(
-                            os.path.join(self.repository_root_path, relative_file_path)
-                        ).as_uri()
-                    },
-                    "position": {
-                        "line": line,
-                        "character": column,
-                    },
-                }
+                LSPTypes.HoverParams.model_validate(
+                    {
+                        "textDocument": {
+                            "uri": pathlib.Path(
+                                os.path.join(
+                                    self.repository_root_path, relative_file_path
+                                )
+                            ).as_uri()
+                        },
+                        "position": {
+                            "line": line,
+                            "character": column,
+                        },
+                    }
+                )
             )
 
-        if response is None:
-            return None
-
-        assert isinstance(response, dict)
-
-        return multilspy_types.Hover(**response)
+        return multilspy_types.Hover.model_validate(response) if response else None
 
 
 @ensure_all_methods_implemented(LanguageServer)
@@ -738,8 +750,8 @@ class SyncLanguageServer:
 
     def __init__(self, language_server: LanguageServer) -> None:
         self.language_server = language_server
-        self.loop = None
-        self.loop_thread = None
+        # self.loop = None
+        # self.loop_thread = None
 
     @classmethod
     def create(
