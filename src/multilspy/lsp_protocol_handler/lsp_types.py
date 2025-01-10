@@ -617,20 +617,6 @@ class TokenFormat(str, Enum):
     Relative = "relative"
 
 
-Definition = Union["Location", List["Location"]]
-""" The definition of a symbol represented as one or many {@link Location locations}.
-For most programming languages there is only one location at which a symbol is
-defined.
-
-Servers should prefer returning `DefinitionLink` over `Definition` if supported
-by the client. """
-
-DefinitionLink = "LocationLink"
-""" Information about where a symbol is defined.
-
-Provides additional metadata over normal {@link Location location} definitions, including the range of
-the defining symbol """
-
 LSPArray = List[JsonValue]
 """ LSP arrays.
 @since 3.17.0 """
@@ -643,21 +629,7 @@ convenience it is allowed and assumed that all these properties are
 optional as well.
 @since 3.17.0 """
 
-Declaration = Union["Location", List["Location"]]
-""" The declaration of a symbol representation as one or many {@link Location locations}. """
 
-DeclarationLink = "LocationLink"
-""" Information about where a symbol is declared.
-
-Provides additional metadata over normal {@link Location location} declarations, including the range of
-the declaring symbol.
-
-Servers should prefer returning `DeclarationLink` over `Declaration` if supported
-by the client. """
-
-InlineValue = Union[
-    "InlineValueText", "InlineValueVariableLookup", "InlineValueEvaluatableExpression"
-]
 """ Inline value information can be provided by different means:
 - directly as a text value (class InlineValueText).
 - as a name to use for a variable lookup (class InlineValueVariableLookup)
@@ -5925,3 +5897,34 @@ class ___InitializeParams_clientInfo_Type_1(BaseModel):
     """ The name of the client as defined by the client. """
     version: Optional[str] = None
     """ The client's version as defined by the client. """
+
+
+Definition = Union[Location, List[Location]]
+""" The definition of a symbol represented as one or many {@link Location locations}.
+For most programming languages there is only one location at which a symbol is
+defined.
+
+Servers should prefer returning `DefinitionLink` over `Definition` if supported
+by the client. """
+
+DefinitionLink = LocationLink
+""" Information about where a symbol is defined.
+
+Provides additional metadata over normal {@link Location location} definitions, including the range of
+the defining symbol """
+
+Declaration = Union[Location, List[Location]]
+""" The declaration of a symbol representation as one or many {@link Location locations}. """
+
+DeclarationLink = LocationLink
+""" Information about where a symbol is declared.
+
+Provides additional metadata over normal {@link Location location} declarations, including the range of
+the declaring symbol.
+
+Servers should prefer returning `DeclarationLink` over `Declaration` if supported
+by the client. """
+
+InlineValue = Union[
+    InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression
+]

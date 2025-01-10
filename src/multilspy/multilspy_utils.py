@@ -5,23 +5,26 @@ This file contains various utility functions like I/O operations, handling paths
 import gzip
 import logging
 import os
-from typing import Tuple
-import requests
-import shutil
-import uuid
-
 import platform
+import shutil
 import subprocess
+import uuid
 from enum import Enum
+from pathlib import Path, PurePath
+from typing import Tuple
+
+import requests
 
 from multilspy.multilspy_exceptions import MultilspyException
-from pathlib import PurePath, Path
-from multilspy.multilspy_logger import MultilspyLogger
+
+# from multilspy.multilspy_logger import MultilspyLogger
+
 
 class TextUtils:
     """
     Utilities for text operations.
     """
+
     @staticmethod
     def get_line_col_from_index(text: str, index: int) -> Tuple[int, int]:
         """
@@ -31,7 +34,7 @@ class TextUtils:
         c = 0
         idx = 0
         while idx < index:
-            if text[idx] == '\n':
+            if text[idx] == "\n":
                 l += 1
                 c = 0
             else:
@@ -39,7 +42,7 @@ class TextUtils:
             idx += 1
 
         return l, c
-    
+
     @staticmethod
     def get_index_from_line_col(text: str, line: int, col: int) -> int:
         """
@@ -53,24 +56,28 @@ class TextUtils:
             idx += 1
         idx += col
         return idx
-    
+
     @staticmethod
-    def get_updated_position_from_line_and_column_and_edit(l: int, c: int, text_to_be_inserted: str) -> Tuple[int, int]:
+    def get_updated_position_from_line_and_column_and_edit(
+        l: int, c: int, text_to_be_inserted: str
+    ) -> Tuple[int, int]:
         """
         Utility function to get the position of the cursor after inserting text at a given line and column.
         """
-        num_newlines_in_gen_text = text_to_be_inserted.count('\n')
+        num_newlines_in_gen_text = text_to_be_inserted.count("\n")
         if num_newlines_in_gen_text > 0:
             l += num_newlines_in_gen_text
-            c = len(text_to_be_inserted.split('\n')[-1])
+            c = len(text_to_be_inserted.split("\n")[-1])
         else:
             c += len(text_to_be_inserted)
         return (l, c)
+
 
 class PathUtils:
     """
     Utilities for platform-agnostic path operations.
     """
+
     @staticmethod
     def uri_to_path(uri: str) -> str:
         """
@@ -79,15 +86,17 @@ class PathUtils:
         This method was obtained from https://stackoverflow.com/a/61922504
         """
         try:
-            from urllib.parse import urlparse, unquote
+            from urllib.parse import unquote, urlparse
             from urllib.request import url2pathname
         except ImportError:
             # backwards compatability
-            from urlparse import urlparse
             from urllib import unquote, url2pathname
+
+            from urlparse import urlparse
         parsed = urlparse(uri)
         host = "{0}{0}{mnt}{0}".format(os.path.sep, mnt=parsed.netloc)
         return os.path.normpath(os.path.join(host, url2pathname(unquote(parsed.path))))
+
 
 class FileUtils:
     """
@@ -95,7 +104,7 @@ class FileUtils:
     """
 
     @staticmethod
-    def read_file(logger: MultilspyLogger, file_path: str) -> str:
+    def read_file(file_path: str, logger: logging.Logger) -> str:
         """
         Reads the file at the given path and returns the contents as a string.
         """
@@ -108,38 +117,46 @@ class FileUtils:
                 except UnicodeError:
                     continue
         except Exception as exc:
-            logger.log(f"File read '{file_path}' failed: {exc}", logging.ERROR)
+            logger.error(f"File read '{file_path}' failed: {exc}")
             raise MultilspyException("File read failed.") from None
-        logger.log(f"File read '{file_path}' failed: Unsupported encoding.", logging.ERROR)
-        raise MultilspyException(f"File read '{file_path}' failed: Unsupported encoding.") from None
-    
+        logger.error(f"File read '{file_path}' failed: Unsupported encoding.")
+        raise MultilspyException(
+            f"File read '{file_path}' failed: Unsupported encoding."
+        ) from None
+
     @staticmethod
-    def download_file(logger: MultilspyLogger, url: str, target_path: str) -> None:
+    def download_file(url: str, target_path: str, logger: logging.Logger) -> None:
         """
         Downloads the file from the given URL to the given {target_path}
         """
         try:
             response = requests.get(url, stream=True, timeout=60)
             if response.status_code != 200:
-                logger.log(f"Error downloading file '{url}': {response.status_code} {response.text}", logging.ERROR)
+                logger.error(
+                    f"Error downloading file '{url}': {response.status_code} {response.text}"
+                )
                 raise MultilspyException("Error downoading file.")
             with open(target_path, "wb") as f:
                 shutil.copyfileobj(response.raw, f)
         except Exception as exc:
-            logger.log(f"Error downloading file '{url}': {exc}", logging.ERROR)
+            logger.error(f"Error downloading file '{url}': {exc}")
             raise MultilspyException("Error downoading file.") from None
 
     @staticmethod
-    def download_and_extract_archive(logger: MultilspyLogger, url: str, target_path: str, archive_type: str) -> None:
+    def download_and_extract_archive(
+        url: str, target_path: str, archive_type: str, logger: logging.Logger
+    ) -> None:
         """
         Downloads the archive from the given URL having format {archive_type} and extracts it to the given {target_path}
         """
+        tmp_files = []
+        tmp_file_name = str(
+            PurePath(os.path.expanduser("~"), "multilspy_tmp", uuid.uuid4().hex)
+        )
+        tmp_files.append(tmp_file_name)
+        os.makedirs(os.path.dirname(tmp_file_name), exist_ok=True)
         try:
-            tmp_files = []
-            tmp_file_name = str(PurePath(os.path.expanduser("~"), "multilspy_tmp", uuid.uuid4().hex))
-            tmp_files.append(tmp_file_name)
-            os.makedirs(os.path.dirname(tmp_file_name), exist_ok=True)
-            FileUtils.download_file(logger, url, tmp_file_name)
+            FileUtils.download_file(url, tmp_file_name, logger)
             if archive_type in ["zip", "tar", "gztar", "bztar", "xztar"]:
                 assert os.path.isdir(target_path)
                 shutil.unpack_archive(tmp_file_name, target_path, archive_type)
@@ -147,27 +164,35 @@ class FileUtils:
                 assert os.path.isdir(target_path)
                 tmp_file_name_ungzipped = tmp_file_name + ".zip"
                 tmp_files.append(tmp_file_name_ungzipped)
-                with gzip.open(tmp_file_name, "rb") as f_in, open(tmp_file_name_ungzipped, "wb") as f_out:
+                with gzip.open(tmp_file_name, "rb") as f_in, open(
+                    tmp_file_name_ungzipped, "wb"
+                ) as f_out:
                     shutil.copyfileobj(f_in, f_out)
                 shutil.unpack_archive(tmp_file_name_ungzipped, target_path, "zip")
             elif archive_type == "gz":
-                with gzip.open(tmp_file_name, "rb") as f_in, open(target_path, "wb") as f_out:
+                with gzip.open(tmp_file_name, "rb") as f_in, open(
+                    target_path, "wb"
+                ) as f_out:
                     shutil.copyfileobj(f_in, f_out)
             else:
-                logger.log(f"Unknown archive type '{archive_type}' for extraction", logging.ERROR)
+                logger.error(f"Unknown archive type '{archive_type}' for extraction")
                 raise MultilspyException(f"Unknown archive type '{archive_type}'")
         except Exception as exc:
-            logger.log(f"Error extracting archive '{tmp_file_name}' obtained from '{url}': {exc}", logging.ERROR)
+            logger.error(
+                f"Error extracting archive '{tmp_file_name}' obtained from '{url}': {exc}"
+            )
             raise MultilspyException("Error extracting archive.") from exc
         finally:
             for tmp_file_name in tmp_files:
                 if os.path.exists(tmp_file_name):
                     Path.unlink(Path(tmp_file_name))
 
+
 class PlatformId(str, Enum):
     """
     multilspy supported platforms
     """
+
     WIN_x86 = "win-x86"
     WIN_x64 = "win-x64"
     WIN_arm64 = "win-arm64"
@@ -180,15 +205,18 @@ class PlatformId(str, Enum):
     LINUX_MUSL_x64 = "linux-musl-x64"
     LINUX_MUSL_arm64 = "linux-musl-arm64"
 
+
 class DotnetVersion(str, Enum):
     """
     multilspy supported dotnet versions
     """
+
     V4 = "4"
     V6 = "6"
     V7 = "7"
     V8 = "8"
     VMONO = "mono"
+
 
 class PlatformUtils:
     """
@@ -204,16 +232,25 @@ class PlatformUtils:
         machine = platform.machine()
         bitness = platform.architecture()[0]
         system_map = {"Windows": "win", "Darwin": "osx", "Linux": "linux"}
-        machine_map = {"AMD64": "x64", "x86_64": "x64", "i386": "x86", "i686": "x86", "aarch64": "arm64", "arm64": "arm64"}
+        machine_map = {
+            "AMD64": "x64",
+            "x86_64": "x64",
+            "i386": "x86",
+            "i686": "x86",
+            "aarch64": "arm64",
+            "arm64": "arm64",
+        }
         if system in system_map and machine in machine_map:
             platform_id = system_map[system] + "-" + machine_map[machine]
             if system == "Linux" and bitness == "64bit":
                 libc = platform.libc_ver()[0]
-                if libc != 'glibc':
+                if libc != "glibc":
                     platform_id += "-" + libc
             return PlatformId(platform_id)
         else:
-            raise MultilspyException("Unknown platform: " + system + " " + machine + " " + bitness)
+            raise MultilspyException(
+                "Unknown platform: " + system + " " + machine + " " + bitness
+            )
 
     @staticmethod
     def get_dotnet_version() -> DotnetVersion:
@@ -221,13 +258,15 @@ class PlatformUtils:
         Returns the dotnet version for the current system
         """
         try:
-            result = subprocess.run(["dotnet", "--list-runtimes"], capture_output=True, check=True)
-            version = ''
-            for line in result.stdout.decode('utf-8').split('\n'):
-                if line.startswith('Microsoft.NETCore.App'):
-                    version = line.split(' ')[1]
+            result = subprocess.run(
+                ["dotnet", "--list-runtimes"], capture_output=True, check=True
+            )
+            version = ""
+            for line in result.stdout.decode("utf-8").split("\n"):
+                if line.startswith("Microsoft.NETCore.App"):
+                    version = line.split(" ")[1]
                     break
-            if version == '':
+            if version == "":
                 raise MultilspyException("dotnet not found on the system")
             if version.startswith("8"):
                 return DotnetVersion.V8
@@ -241,8 +280,9 @@ class PlatformUtils:
                 raise MultilspyException("Unknown dotnet version: " + version)
         except (FileNotFoundError, subprocess.CalledProcessError):
             try:
-                result = subprocess.run(["mono", "--version"], capture_output=True, check=True)
+                result = subprocess.run(
+                    ["mono", "--version"], capture_output=True, check=True
+                )
                 return DotnetVersion.VMONO
             except (FileNotFoundError, subprocess.CalledProcessError):
                 raise MultilspyException("dotnet or mono not found on the system")
-

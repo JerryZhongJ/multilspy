@@ -188,7 +188,7 @@ class LspRequest:
     @implement_send("textDocument/semanticTokens/full/delta")
     async def semantic_tokens_delta(
         self, params: lsp_types.SemanticTokensDeltaParams
-    ) -> Optional["lsp_types.SemanticTokens | lsp_types.SemanticTokensDelta"]:
+    ) -> Optional[lsp_types.SemanticTokens | lsp_types.SemanticTokensDelta]:
         """@since 3.16.0"""
         pass
 

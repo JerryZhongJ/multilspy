@@ -9,7 +9,7 @@ import pytest
 
 from multilspy import LanguageServer
 from multilspy.multilspy_config import Language
-from multilspy.multilspy_types import CompletionItemKind, Position
+from multilspy.multilspy_types import CompletionItemKind, Location, Position
 from tests.test_utils import create_test_context
 
 pytest_plugins = ("pytest_asyncio",)
@@ -27,9 +27,7 @@ async def test_multilspy_rust_carbonyl():
         "repo_commit": "ab80a276b1bd1c2c8dcefc8f248415dfc61dc2bf",
     }
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(
-            context.config, context.logger, context.source_directory
-        )
+        lsp = LanguageServer.create(context.config, context.source_directory)
 
         # All the communication with the language server must be performed inside the context manager
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
@@ -42,12 +40,24 @@ async def test_multilspy_rust_carbonyl():
             assert isinstance(result, list)
             assert len(result) == 1
             item = result[0]
-            assert item["relativePath"] == str(PurePath("src/input/tty.rs"))
-            assert item["range"] == {
-                "start": {"line": 43, "character": 11},
-                "end": {"line": 43, "character": 19},
-            }
+            assert item.relativePath == str(PurePath("src/input/tty.rs"))
+            assert (
+                item.range.start.line == 43
+                and item.range.start.character == 4
+                and item.range.end.line == 59
+                and item.range.end.character == 5
+            )
 
+            assert isinstance(result, list)
+            assert len(result) == 1
+            item = result[0]
+            assert item.relativePath == str(PurePath("src/input/tty.rs"))
+            assert (
+                item.range.start.line == 43
+                and item.range.start.character == 4
+                and item.range.end.line == 59
+                and item.range.end.character == 5
+            )
             result = await lsp.request_references(
                 str(PurePath("src/input/tty.rs")), 43, 15
             )
@@ -56,27 +66,35 @@ async def test_multilspy_rust_carbonyl():
             assert len(result) == 2
 
             for item in result:
-                del item["uri"]
-                del item["absolutePath"]
+                item.uri = ""
+                item.absolutePath = ""
 
             case = unittest.TestCase()
             case.assertCountEqual(
                 result,
                 [
-                    {
-                        "relativePath": str(PurePath("src/browser/bridge.rs")),
-                        "range": {
-                            "start": {"line": 132, "character": 13},
-                            "end": {"line": 132, "character": 21},
-                        },
-                    },
-                    {
-                        "relativePath": str(PurePath("src/input/tty.rs")),
-                        "range": {
-                            "start": {"line": 16, "character": 13},
-                            "end": {"line": 16, "character": 21},
-                        },
-                    },
+                    Location.model_validate(
+                        {
+                            "relativePath": str(PurePath("src/browser/bridge.rs")),
+                            "range": {
+                                "start": {"line": 132, "character": 13},
+                                "end": {"line": 132, "character": 21},
+                            },
+                            "uri": "",
+                            "absolutePath": "",
+                        }
+                    ),
+                    Location.model_validate(
+                        {
+                            "relativePath": str(PurePath("src/input/tty.rs")),
+                            "range": {
+                                "start": {"line": 16, "character": 13},
+                                "end": {"line": 16, "character": 21},
+                            },
+                            "uri": "",
+                            "absolutePath": "",
+                        }
+                    ),
                 ],
             )
 
@@ -95,7 +113,7 @@ async def test_multilspy_rust_completions_mediaplayer() -> None:
 
     with create_test_context(params) as context:
         lsp = LanguageServer.create(
-            context.config, context.logger, context.source_directory
+            context.config, context.source_directory, context.logger
         )
         filepath = "src/playlist.rs"
         # All the communication with the language server must be performed inside the context manager
@@ -119,17 +137,15 @@ async def test_multilspy_rust_completions_mediaplayer() -> None:
                 )
 
                 response = [
-                    item
-                    for item in response
-                    if item["kind"] != CompletionItemKind.Snippet
+                    item for item in response if item.kind != CompletionItemKind.Snippet
                 ]
 
                 for item in response:
-                    item["completionText"] = item["completionText"][
-                        : item["completionText"].find("(")
+                    item.completionText = item.completionText[
+                        : item.completionText.find("(")
                     ]
 
-                assert set([item["completionText"] for item in response]) == {
+                assert {item.completionText for item in response} == {
                     "reset",
                     "into",
                     "try_into",

@@ -20,7 +20,6 @@ from multilspy.lsp_protocol_handler.lsp_types import (
 )
 from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
 from multilspy.multilspy_config import MultilspyConfig
-from multilspy.multilspy_logger import MultilspyLogger
 from multilspy.multilspy_utils import FileUtils, PlatformUtils
 
 
@@ -32,7 +31,7 @@ class RustAnalyzer(LanguageServer):
     def __init__(
         self,
         config: MultilspyConfig,
-        logger: MultilspyLogger,
+        logger: logging.Logger,
         repository_root_path: str,
     ):
         """
@@ -51,7 +50,7 @@ class RustAnalyzer(LanguageServer):
         self.server_ready = asyncio.Event()
 
     def setup_runtime_dependencies(
-        self, logger: MultilspyLogger, config: MultilspyConfig
+        self, logger: logging.Logger, config: MultilspyConfig
     ) -> str:
         """
         Setup runtime dependencies for rust_analyzer.
@@ -88,17 +87,17 @@ class RustAnalyzer(LanguageServer):
             os.makedirs(rustanalyzer_ls_dir)
             if dependency["archiveType"] == "gz":
                 FileUtils.download_and_extract_archive(
-                    logger,
                     dependency["url"],
                     rustanalyzer_executable_path,
                     dependency["archiveType"],
+                    logger,
                 )
             else:
                 FileUtils.download_and_extract_archive(
-                    logger,
                     dependency["url"],
                     rustanalyzer_ls_dir,
                     dependency["archiveType"],
+                    logger,
                 )
         assert os.path.exists(rustanalyzer_executable_path)
         os.chmod(rustanalyzer_executable_path, stat.S_IEXEC)
@@ -146,7 +145,7 @@ class RustAnalyzer(LanguageServer):
                 self.server_ready.set()
 
         async def window_log_message(msg):
-            self.logger.log(f"LSP: window/logMessage: {msg}", logging.INFO)
+            self.logger.error(f"LSP: window/logMessage: {msg}")
 
         self.server.on_request("client/registerCapability", do_nothing)
         self.server.on_notification("language/status", do_nothing)
@@ -160,13 +159,12 @@ class RustAnalyzer(LanguageServer):
         self.server.on_notification(
             "experimental/serverStatus", check_experimental_status
         )
-        self.logger.log("Starting RustAnalyzer server process", logging.INFO)
+        self.logger.info("Starting RustAnalyzer server process")
         await self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        self.logger.log(
-            "Sending initialize request from LSP client to LSP server and awaiting response",
-            logging.INFO,
+        self.logger.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
         )
         init_response: InitializeResult = await self.server.send.initialize(
             initialize_params

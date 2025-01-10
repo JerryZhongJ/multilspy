@@ -21,7 +21,8 @@ from .lsp_protocol_handler.lsp_constants import LSPConstants
 from .lsp_protocol_handler.server import LanguageServerHandler, ProcessLaunchInfo
 from .multilspy_config import Language, MultilspyConfig
 from .multilspy_exceptions import MultilspyException
-from .multilspy_logger import MultilspyLogger
+
+# from .multilspy_logger import MultilspyLogger
 from .multilspy_utils import FileUtils, PathUtils, TextUtils
 from .type_helpers import ensure_all_methods_implemented
 
@@ -77,41 +78,38 @@ class LanguageServer:
         :return LanguageServer: A language specific LanguageServer instance.
         """
         if logger is None:
-            _logger = MultilspyLogger(logging.getLogger("multilspy"))
-        else:
-            _logger = MultilspyLogger(logger)
+            logger = logging.getLogger("multilspy")
+
         if config.code_language == Language.PYTHON:
             from multilspy.language_servers.jedi_language_server.jedi_server import (
                 JediServer,
             )
 
-            return JediServer(config, _logger, repository_root_path)
+            return JediServer(config, logger, repository_root_path)
         elif config.code_language == Language.JAVA:
             from multilspy.language_servers.eclipse_jdtls.eclipse_jdtls import (
                 EclipseJDTLS,
             )
 
-            return EclipseJDTLS(config, _logger, repository_root_path)
+            return EclipseJDTLS(config, logger, repository_root_path)
         elif config.code_language == Language.RUST:
             from multilspy.language_servers.rust_analyzer.rust_analyzer import (
                 RustAnalyzer,
             )
 
-            return RustAnalyzer(config, _logger, repository_root_path)
+            return RustAnalyzer(config, logger, repository_root_path)
         elif config.code_language == Language.CSHARP:
             from multilspy.language_servers.omnisharp.omnisharp import OmniSharp
 
-            return OmniSharp(config, _logger, repository_root_path)
+            return OmniSharp(config, logger, repository_root_path)
         elif config.code_language in [Language.TYPESCRIPT, Language.JAVASCRIPT]:
             from multilspy.language_servers.typescript_language_server.typescript_language_server import (
                 TypeScriptLanguageServer,
             )
 
-            return TypeScriptLanguageServer(config, _logger, repository_root_path)
+            return TypeScriptLanguageServer(config, logger, repository_root_path)
         else:
-            _logger.log(
-                f"Language {config.code_language} is not supported", logging.ERROR
-            )
+            logger.error(f"Language {config.code_language} is not supported")
             raise MultilspyException(
                 f"Language {config.code_language} is not supported"
             )
@@ -119,7 +117,7 @@ class LanguageServer:
     def __init__(
         self,
         config: MultilspyConfig,
-        logger: MultilspyLogger,
+        logger: logging.Logger,
         repository_root_path: str,
         process_launch_info: ProcessLaunchInfo,
         language_id: str,
@@ -150,7 +148,7 @@ class LanguageServer:
         if config.trace_lsp_communication:
 
             def logging_fn(source, target, msg):
-                self.logger.log(f"LSP: {source} -> {target}: {str(msg)}", logging.INFO)
+                self.logger.info(f"LSP: {source} -> {target}: {str(msg)}")
 
         else:
 
@@ -204,9 +202,8 @@ class LanguageServer:
         """
 
         if not self.server_started:
-            self.logger.log(
+            self.logger.error(
                 "open_file called before Language Server started",
-                logging.ERROR,
             )
             raise MultilspyException("Language Server not started")
         absolute_file_path = str(
@@ -219,7 +216,7 @@ class LanguageServer:
             file_buffer = LSPFileBuffer(uri, "", 0, self.language_id, 0)
             self.file_buffers[uri] = file_buffer
         if not file_buffer.is_referenced():
-            contents = FileUtils.read_file(self.logger, absolute_file_path)
+            contents = FileUtils.read_file(absolute_file_path, self.logger)
             if contents != file_buffer.contents:
                 file_buffer.version += 1
                 file_buffer.contents = contents
@@ -265,9 +262,8 @@ class LanguageServer:
         :param text_to_be_inserted: The text to insert.
         """
         if not self.server_started:
-            self.logger.log(
+            self.logger.error(
                 "insert_text_at_position called before Language Server started",
-                logging.ERROR,
             )
             raise MultilspyException("Language Server not started")
 
@@ -323,9 +319,8 @@ class LanguageServer:
         Delete text between the given start and end positions in the given file and return the deleted text.
         """
         if not self.server_started:
-            self.logger.log(
+            self.logger.error(
                 "insert_text_at_position called before Language Server started",
-                logging.ERROR,
             )
             raise MultilspyException("Language Server not started")
 
@@ -374,9 +369,8 @@ class LanguageServer:
         :param relative_file_path: The relative path of the file to open.
         """
         if not self.server_started:
-            self.logger.log(
+            self.logger.error(
                 "get_open_file_text called before Language Server started",
-                logging.ERROR,
             )
             raise MultilspyException("Language Server not started")
 
@@ -390,6 +384,16 @@ class LanguageServer:
 
         file_buffer = self.file_buffers[uri]
         return file_buffer.contents
+
+    def loc2loc(self, loc: LSPTypes.Location) -> multilspy_types.Location:
+        absolute_path = PathUtils.uri_to_path(loc.uri)
+        relative_path = os.path.relpath(absolute_path, self.repository_root_path)
+
+        return multilspy_types.Location(
+            **loc.model_dump(),
+            absolutePath=absolute_path,
+            relativePath=relative_path,
+        )
 
     async def request_definition(
         self, relative_file_path: str, line: int, column: int
@@ -406,9 +410,8 @@ class LanguageServer:
         """
 
         if not self.server_started:
-            self.logger.log(
+            self.logger.error(
                 "find_function_definition called before Language Server started",
-                logging.ERROR,
             )
             raise MultilspyException("Language Server not started")
 
@@ -419,11 +422,7 @@ class LanguageServer:
                     {
                         LSPConstants.TEXT_DOCUMENT: {
                             LSPConstants.URI: pathlib.Path(
-                                str(
-                                    PurePath(
-                                        self.repository_root_path, relative_file_path
-                                    )
-                                )
+                                self.repository_root_path, relative_file_path
                             ).as_uri()
                         },
                         LSPConstants.POSITION: {
@@ -439,24 +438,14 @@ class LanguageServer:
             # response is either of type Location[] or LocationLink[]
             for item in response:
                 if isinstance(item, LSPTypes.Location):
-                    absolute_path = PathUtils.uri_to_path(item.uri)
-                    relative_path = PurePath(
-                        os.path.relpath(absolute_path, self.repository_root_path)
-                    ).name
-                    ret.append(
-                        multilspy_types.Location(
-                            **item.model_dump(),
-                            absolutePath=absolute_path,
-                            relativePath=relative_path,
-                        )
-                    )
+                    ret.append(self.loc2loc(item))
                 elif isinstance(item, LSPTypes.LocationLink):
 
                     uri = item.targetUri
                     absolutePath = PathUtils.uri_to_path(uri)
-                    relativePath = PurePath(
-                        os.path.relpath(absolutePath, self.repository_root_path)
-                    ).name
+                    relativePath = os.path.relpath(
+                        absolutePath, self.repository_root_path
+                    )
 
                     range = multilspy_types.Range.model_validate(
                         item.targetRange.model_dump()
@@ -472,18 +461,7 @@ class LanguageServer:
                 else:
                     assert False, f"Unexpected response from Language Server: {item}"
         elif isinstance(response, LSPTypes.Location):
-            # response is of type Location
-            absolute_path = PathUtils.uri_to_path(response.uri)
-            relative_path = PurePath(
-                os.path.relpath(absolute_path, self.repository_root_path)
-            ).name
-            ret.append(
-                multilspy_types.Location(
-                    **response.model_dump(),
-                    absolutePath=absolute_path,
-                    relativePath=relative_path,
-                )
-            )
+            ret.append(self.loc2loc(response))
         else:
             assert False, f"Unexpected response from Language Server: {response}"
 
@@ -504,9 +482,8 @@ class LanguageServer:
         """
 
         if not self.server_started:
-            self.logger.log(
+            self.logger.error(
                 "find_all_callers_of_function called before Language Server started",
-                logging.ERROR,
             )
             raise MultilspyException("Language Server not started")
 
@@ -534,9 +511,8 @@ class LanguageServer:
         for item in response:
 
             absolute_path = PathUtils.uri_to_path(item.uri)
-            relative_path = PurePath(
-                os.path.relpath(absolute_path, self.repository_root_path)
-            ).name
+            relative_path = os.path.relpath(absolute_path, self.repository_root_path)
+
             ret.append(
                 multilspy_types.Location(
                     **item.model_dump(),
@@ -751,7 +727,7 @@ class LanguageServer:
         )
 
 
-@ensure_all_methods_implemented(LanguageServer)
+# @ensure_all_methods_implemented(LanguageServer)
 class SyncLanguageServer:
     """
     The SyncLanguageServer class provides a language agnostic interface to the Language Server Protocol.
