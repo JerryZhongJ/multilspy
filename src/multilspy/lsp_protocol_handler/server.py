@@ -34,8 +34,20 @@ import json
 import os
 from typing import Any, Dict, Optional
 
+from pydantic import JsonValue, TypeAdapter
+
 from .lsp_requests import LspNotification, LspRequest
-from .lsp_types import ErrorCodes, PayloadLike, StringDict
+from .lsp_types import (
+    Error,
+    ErrorCodes,
+    ErrorResponse,
+    LSPAny,
+    Notification,
+    Params,
+    Payload,
+    Request,
+    Response,
+)
 
 CONTENT_LENGTH = "Content-Length: "
 ENCODING = "utf-8"
@@ -57,46 +69,47 @@ class ProcessLaunchInfo:
     cwd: str = os.getcwd()
 
 
-class Error(Exception):
+class ReceiveError(Exception):
     def __init__(self, code: ErrorCodes, message: str) -> None:
         super().__init__(message)
         self.code = code
 
-    def to_lsp(self) -> StringDict:
-        return {"code": self.code, "message": super().__str__()}
+    def to_lsp(self) -> Error:
+        return Error(code=self.code, message=self.__str__())
 
     @classmethod
-    def from_lsp(cls, d: StringDict) -> "Error":
-        return Error(d["code"], d["message"])
+    def from_lsp(cls, err: Error) -> "ReceiveError":
+        return ReceiveError(err.code, err.message)
 
     def __str__(self) -> str:
         return f"{super().__str__()} ({self.code})"
 
 
-def make_response(request_id: Any, params: PayloadLike) -> StringDict:
-    return {"jsonrpc": "2.0", "id": request_id, "result": params}
+# def make_response(request_id: Any, params: PayloadLike) -> StringDict:
+#     return {"jsonrpc": "2.0", "id": request_id, "result": params}
 
 
-def make_error_response(request_id: Any, err: Error) -> StringDict:
-    return {"jsonrpc": "2.0", "id": request_id, "error": err.to_lsp()}
+# def make_error_response(request_id: Any, err: Error) -> StringDict:
+#     return {"jsonrpc": "2.0", "id": request_id, "error": err.to_lsp()}
 
 
-def make_notification(method: str, params: PayloadLike) -> StringDict:
-    return {"jsonrpc": "2.0", "method": method, "params": params}
+# def make_notification(method: str, params: PayloadLike) -> StringDict:
+#     return {"jsonrpc": "2.0", "method": method, "params": params}
 
 
-def make_request(method: str, request_id: Any, params: PayloadLike) -> StringDict:
-    return {"jsonrpc": "2.0", "method": method, "id": request_id, "params": params}
+# def make_request(method: str, request_id: Any, params: PayloadLike) -> StringDict:
+#     return {"jsonrpc": "2.0", "method": method, "id": request_id, "params": params}
 
 
 class StopLoopException(Exception):
     pass
 
 
-def create_message(payload: PayloadLike):
-    body = json.dumps(
-        payload, check_circular=False, ensure_ascii=False, separators=(",", ":")
-    ).encode(ENCODING)
+def create_message(payload: Payload):
+    # body = json.dumps(
+    #     payload, check_circular=False, ensure_ascii=False, separators=(",", ":")
+    # ).encode(ENCODING)
+    body = payload.model_dump_json().encode(ENCODING)
     return (
         f"Content-Length: {len(body)}\r\n".encode(ENCODING),
         "Content-Type: application/vscode-jsonrpc; charset=utf-8\r\n\r\n".encode(
@@ -113,13 +126,13 @@ class MessageType:
     log = 4
 
 
-class Request:
+class ResponseHandler:
     def __init__(self) -> None:
         self.cv = asyncio.Condition()
-        self.result: Optional[PayloadLike] = None
+        self.result: Optional[LSPAny] = None
         self.error: Optional[Error] = None
 
-    async def on_result(self, params: PayloadLike) -> None:
+    async def on_result(self, params: LSPAny) -> None:
 
         self.result = params
         async with self.cv:
@@ -191,13 +204,16 @@ class LanguageServerHandler:
         self._received_shutdown = False
 
         self.request_id = 1
-        self._response_handlers: Dict[Any, Request] = {}
+        self._response_handlers: Dict[Any, ResponseHandler] = {}
         self.on_request_handlers = {}
         self.on_notification_handlers = {}
         self.logger = logger
         self.tasks = {}
         self.task_counter = 0
         self.loop = None
+        self._type_adapter = TypeAdapter(
+            Request | Notification | Response | ErrorResponse
+        )
 
     def __del__(self):
         if self.process:
@@ -212,6 +228,7 @@ class LanguageServerHandler:
         child_proc_env.update(self.process_launch_info.env)
         self.process = await asyncio.create_subprocess_shell(
             self.process_launch_info.cmd,
+            # f"tee /tmp/input.log | {self.process_launch_info.cmd} | tee /tmp/output.log",
             stdout=asyncio.subprocess.PIPE,
             stdin=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -324,7 +341,7 @@ class LanguageServerHandler:
         Parse the body text received from the language server process and invoke the appropriate handler
         """
         try:
-            await self._receive_payload(json.loads(body))
+            await self._receive_payload(body)
         except IOError as ex:
             self._log(f"malformed {ENCODING}: {ex}")
         except UnicodeDecodeError as ex:
@@ -332,37 +349,40 @@ class LanguageServerHandler:
         except json.JSONDecodeError as ex:
             self._log(f"malformed JSON: {ex}")
 
-    async def _receive_payload(self, payload: StringDict) -> None:
+    async def _receive_payload(self, body: bytes) -> None:
         """
         Determine if the payload received from server is for a request, response, or notification and invoke the appropriate handler
         """
         if self.logger:
-            self.logger("server", "client", payload)
+            self.logger("server", "client", body.decode())
         try:
-            if "method" in payload:
-                if "id" in payload:
-                    await self._request_handler(payload)
-                else:
-                    await self._notification_handler(payload)
-            elif "id" in payload:
+            payload = self._type_adapter.validate_json(body)
+            if isinstance(payload, Request):
+                await self._request_handler(payload)
+            elif isinstance(payload, Notification):
+                await self._notification_handler(payload)
+            elif isinstance(payload, Response) or isinstance(payload, ErrorResponse):
                 await self._response_handler(payload)
             else:
                 self._log(f"Unknown payload type: {payload}")
+
         except Exception as err:
             self._log(f"Error handling server payload: {err}")
 
-    def send_notification(self, method: str, params: Optional[dict] = None) -> None:
+    def send_notification(self, method: str, params: Optional[Params] = None) -> None:
         """
         Send notification pertaining to the given method to the server with the given parameters
         """
-        self._send_payload_sync(make_notification(method, params))
+        self._send_payload_sync(
+            Notification(method=method, params=params.model_dump() if params else None)
+        )
 
-    def send_response(self, request_id: Any, params: PayloadLike) -> None:
+    def send_response(self, request_id: Any, params: Optional[JsonValue]) -> None:
         """
         Send response to the given request id to the server with the given parameters
         """
         self.tasks[self.task_counter] = asyncio.get_event_loop().create_task(
-            self._send_payload(make_response(request_id, params))
+            self._send_payload(Response(id=request_id, result=params))
         )
         self.task_counter += 1
 
@@ -371,28 +391,34 @@ class LanguageServerHandler:
         Send error response to the given request id to the server with the given error
         """
         self.tasks[self.task_counter] = asyncio.get_event_loop().create_task(
-            self._send_payload(make_error_response(request_id, err))
+            self._send_payload(ErrorResponse(id=request_id, error=err))
         )
         self.task_counter += 1
 
     async def send_request(
-        self, method: str, params: Optional[dict] = None
-    ) -> Optional[PayloadLike]:
+        self, method: str, params: Optional[Params] = None
+    ) -> Optional[LSPAny]:
         """
         Send request to the server, register the request id, and wait for the response
         """
-        request = Request()
+        handler = ResponseHandler()
         request_id = self.request_id
         self.request_id += 1
-        self._response_handlers[request_id] = request
-        async with request.cv:
-            await self._send_payload(make_request(method, request_id, params))
-            await asyncio.wait_for(request.cv.wait(), timeout=5)
-        if isinstance(request.error, Error):
-            raise request.error
-        return request.result
+        self._response_handlers[request_id] = handler
+        async with handler.cv:
+            await self._send_payload(
+                Request(
+                    method=method,
+                    id=request_id,
+                    params=params.model_dump() if params else None,
+                )
+            )
+            await asyncio.wait_for(handler.cv.wait(), timeout=5)
+        if isinstance(handler.error, Error):
+            raise ReceiveError.from_lsp(handler.error)
+        return handler.result
 
-    def _send_payload_sync(self, payload: StringDict) -> None:
+    def _send_payload_sync(self, payload: Payload) -> None:
         """
         Send the payload to the server by writing to its stdin synchronously
         """
@@ -403,7 +429,7 @@ class LanguageServerHandler:
             self.logger("client", "server", payload)
         self.process.stdin.writelines(msg)
 
-    async def _send_payload(self, payload: StringDict) -> None:
+    async def _send_payload(self, payload: Payload) -> None:
         """
         Send the payload to the server by writing to its stdin asynchronously.
         """
@@ -427,50 +453,50 @@ class LanguageServerHandler:
         """
         self.on_notification_handlers[method] = cb
 
-    async def _response_handler(self, response: StringDict) -> None:
+    async def _response_handler(self, response: Response | ErrorResponse) -> None:
         """
         Handle the response received from the server for a request, using the id to determine the request
         """
-        request = self._response_handlers.pop(response["id"])
-        if "result" in response and "error" not in response:
-            await request.on_result(response["result"])
-        elif "result" not in response and "error" in response:
-            await request.on_error(Error.from_lsp(response["error"]))
-        else:
-            await request.on_error(Error(ErrorCodes.InvalidRequest, ""))
 
-    async def _request_handler(self, response: StringDict) -> None:
+        request = self._response_handlers.pop(response.id)
+        if isinstance(response, Response):
+            await request.on_result(response.result)
+        else:
+            await request.on_error(response.error)
+
+    async def _request_handler(self, response: Request) -> None:
         """
         Handle the request received from the server: call the appropriate callback function and return the result
         """
-        method = response.get("method", "")
-        params = response.get("params")
-        request_id = response.get("id")
+        method = response.method
+        params = response.params
+        request_id = response.id
         handler = self.on_request_handlers.get(method)
         if not handler:
             self.send_error_response(
                 request_id,
                 Error(
-                    ErrorCodes.MethodNotFound,
-                    "method '{}' not handled on client.".format(method),
+                    code=ErrorCodes.MethodNotFound,
+                    message="method '{}' not handled on client.".format(method),
                 ),
             )
             return
         try:
             self.send_response(request_id, await handler(params))
-        except Error as ex:
-            self.send_error_response(request_id, ex)
+        except ReceiveError as ex:
+            self.send_error_response(request_id, ex.to_lsp())
         except Exception as ex:
             self.send_error_response(
-                request_id, Error(ErrorCodes.InternalError, str(ex))
+                request_id,
+                Error(code=ErrorCodes.InternalError, message=str(ex)),
             )
 
-    async def _notification_handler(self, response: StringDict) -> None:
+    async def _notification_handler(self, response: Notification) -> None:
         """
         Handle the notification received from the server: call the appropriate callback function
         """
-        method = response.get("method", "")
-        params = response.get("params")
+        method = response.method
+        params = response.params
         handler = self.on_notification_handlers.get(method)
         if not handler:
             self._log(f"unhandled {method}")

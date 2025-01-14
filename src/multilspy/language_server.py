@@ -24,7 +24,6 @@ from .multilspy_exceptions import MultilspyException
 
 # from .multilspy_logger import MultilspyLogger
 from .multilspy_utils import FileUtils, PathUtils, TextUtils
-from .type_helpers import ensure_all_methods_implemented
 
 
 @dataclasses.dataclass
@@ -564,6 +563,8 @@ class LanguageServer:
                     response = LSPTypes.CompletionList.model_validate(
                         {"items": tmp, "isIncomplete": False}
                     )
+                else:
+                    response = tmp
                 num_retries += 1
 
             # TODO: Understand how to appropriately handle `isIncomplete`
@@ -593,21 +594,22 @@ class LanguageServer:
                         detail=item.detail,
                     )
                 elif item.textEdit:
-                    assert isinstance(item.textEdit, LSPTypes.TextEdit)
-                    new_dot_lineno, new_dot_colno = (
-                        completion_params.position.line,
-                        completion_params.position.character,
-                    )
-                    assert all(
-                        (
-                            item.textEdit.range.start.line == new_dot_lineno,
-                            item.textEdit.range.start.character == new_dot_colno,
-                            item.textEdit.range.start.line
-                            == item.textEdit.range.end.line,
-                            item.textEdit.range.start.character
-                            == item.textEdit.range.end.character,
+
+                    if isinstance(item.textEdit, LSPTypes.TextEdit):
+                        new_dot_lineno, new_dot_colno = (
+                            completion_params.position.line,
+                            completion_params.position.character,
                         )
-                    )
+                        assert all(
+                            (
+                                item.textEdit.range.start.line == new_dot_lineno,
+                                item.textEdit.range.start.character == new_dot_colno,
+                                item.textEdit.range.start.line
+                                == item.textEdit.range.end.line,
+                                item.textEdit.range.start.character
+                                == item.textEdit.range.end.character,
+                            )
+                        )
                     completion_item = multilspy_types.CompletionItem(
                         completionText=item.textEdit.newText,
                         kind=kind,

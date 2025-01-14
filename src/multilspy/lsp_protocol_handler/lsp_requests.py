@@ -29,13 +29,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import Awaitable, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Awaitable, Callable, List, Optional, TypeVar, Union
 
 from pydantic import TypeAdapter
 
 from multilspy.lsp_protocol_handler import lsp_types
 
-from .lsp_types import Params, PayloadLike
+from .lsp_types import LSPAny, Params
 
 T = TypeVar("T", bound=Params)
 R = TypeVar("R")
@@ -47,9 +47,8 @@ def implement_send(method: str):
         type_adapter = TypeAdapter(ret_type)
 
         async def wrapper(self: "LspRequest", params: Params) -> R:
-            return type_adapter.validate_python(
-                await self.send_request(method, params.model_dump())
-            )
+            res = await self.send_request(method, params)
+            return type_adapter.validate_python(res)
 
         return wrapper
 
@@ -59,7 +58,7 @@ def implement_send(method: str):
 def implement_notify(method: str):
     def decorator(func: Callable[["LspNotification", T], None]):
         def wrapper(self: "LspNotification", params: Params) -> None:
-            self.send_notification(method, params.model_dump())
+            self.send_notification(method, params)
 
         return wrapper
 
@@ -69,7 +68,7 @@ def implement_notify(method: str):
 class LspRequest:
     def __init__(
         self,
-        send_request: Callable[[str, Optional[Dict]], Awaitable[Optional[PayloadLike]]],
+        send_request: Callable[[str, Optional[Params]], Awaitable[Optional[LSPAny]]],
     ):
         self.send_request = send_request
         self._implementation_adapter = TypeAdapter(
@@ -555,7 +554,7 @@ class LspRequest:
 
 
 class LspNotification:
-    def __init__(self, send_notification: Callable[[str, Optional[Dict]], None]):
+    def __init__(self, send_notification: Callable[[str, Optional[Params]], None]):
         self.send_notification = send_notification
 
     @implement_notify("workspace/didChangeWorkspaceFolders")

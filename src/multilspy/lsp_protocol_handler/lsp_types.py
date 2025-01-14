@@ -5899,6 +5899,36 @@ class ___InitializeParams_clientInfo_Type_1(BaseModel):
     """ The client's version as defined by the client. """
 
 
+class Payload(BaseModel):
+    jsonrpc: Literal["2.0"] = "2.0"
+
+
+class Notification(Payload):
+    method: str
+    params: Optional[LSPAny]
+
+
+class Request(Payload):
+    method: str
+    id: int
+    params: Optional[LSPAny]
+
+
+class Response(Payload):
+    id: int
+    result: Optional[LSPAny] = None
+
+
+class Error(BaseModel):
+    code: ErrorCodes
+    message: str
+
+
+class ErrorResponse(Payload):
+    id: int
+    error: Error
+
+
 Definition = Union[Location, List[Location]]
 """ The definition of a symbol represented as one or many {@link Location locations}.
 For most programming languages there is only one location at which a symbol is

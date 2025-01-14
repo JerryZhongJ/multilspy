@@ -162,7 +162,6 @@ class RustAnalyzer(LanguageServer):
         self.logger.info("Starting RustAnalyzer server process")
         await self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
-
         self.logger.info(
             "Sending initialize request from LSP client to LSP server and awaiting response"
         )
