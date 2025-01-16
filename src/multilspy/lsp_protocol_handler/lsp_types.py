@@ -5905,18 +5905,18 @@ class Payload(BaseModel):
 
 class Notification(Payload):
     method: str
-    params: Optional[LSPAny]
+    params: LSPAny = None
 
 
 class Request(Payload):
     method: str
     id: int
-    params: Optional[LSPAny]
+    params: LSPAny = None
 
 
 class Response(Payload):
     id: int
-    result: Optional[LSPAny] = None
+    result: LSPAny
 
 
 class Error(BaseModel):

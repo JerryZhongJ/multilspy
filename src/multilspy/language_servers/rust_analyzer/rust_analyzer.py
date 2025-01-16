@@ -28,6 +28,8 @@ class RustAnalyzer(LanguageServer):
     Provides Rust specific instantiation of the LanguageServer class. Contains various configurations and settings specific to Rust.
     """
 
+    _meta_files = ["Cargo.toml"]
+
     def __init__(
         self,
         config: MultilspyConfig,

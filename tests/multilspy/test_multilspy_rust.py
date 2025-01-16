@@ -183,7 +183,7 @@ edition = "2021"
             )
 
         lsp = LanguageServer.create(
-            MultilspyConfig(Language.RUST, True),
+            MultilspyConfig(Language.RUST),
             temp_dir,
         )
 

@@ -31,7 +31,9 @@ SOFTWARE.
 import asyncio
 import dataclasses
 import json
+import logging
 import os
+import traceback
 from typing import Any, Dict, Optional
 
 from pydantic import JsonValue, TypeAdapter
@@ -189,7 +191,9 @@ class LanguageServerHandler:
         loop: An asyncio.AbstractEventLoop object that represents the event loop used by the handler.
     """
 
-    def __init__(self, process_launch_info: ProcessLaunchInfo, logger=None) -> None:
+    def __init__(
+        self, process_launch_info: ProcessLaunchInfo, logger: logging.Logger
+    ) -> None:
         """
         Params:
             cmd: A string that represents the command to launch the language server process.
@@ -283,7 +287,7 @@ class LanguageServerHandler:
         Create a log message
         """
         if self.logger:
-            self.logger("client", "logger", message)
+            self.logger.debug(f"client -> logger: {message}")
 
     async def run_forever(self) -> bool:
         """
@@ -354,7 +358,7 @@ class LanguageServerHandler:
         Determine if the payload received from server is for a request, response, or notification and invoke the appropriate handler
         """
         if self.logger:
-            self.logger("server", "client", body.decode())
+            self.logger.debug(f"server -> client: {body.decode()}")
         try:
             payload = self._type_adapter.validate_json(body)
             if isinstance(payload, Request):
@@ -368,6 +372,7 @@ class LanguageServerHandler:
 
         except Exception as err:
             self._log(f"Error handling server payload: {err}")
+            self.logger.debug(traceback.format_exc())
 
     def send_notification(self, method: str, params: Optional[Params] = None) -> None:
         """
@@ -413,7 +418,7 @@ class LanguageServerHandler:
                     params=params.model_dump() if params else None,
                 )
             )
-            await asyncio.wait_for(handler.cv.wait(), timeout=5)
+            await handler.cv.wait()
         if isinstance(handler.error, Error):
             raise ReceiveError.from_lsp(handler.error)
         return handler.result
@@ -426,7 +431,7 @@ class LanguageServerHandler:
             return
         msg = create_message(payload)
         if self.logger:
-            self.logger("client", "server", payload)
+            self.logger.debug(f"client -> server: {payload}")
         self.process.stdin.writelines(msg)
 
     async def _send_payload(self, payload: Payload) -> None:
@@ -437,7 +442,7 @@ class LanguageServerHandler:
             return
         msg = create_message(payload)
         if self.logger:
-            self.logger("client", "server", payload)
+            self.logger.debug(f"client -> server: {payload}")
         self.process.stdin.writelines(msg)
         await self.process.stdin.drain()
 
@@ -507,15 +512,13 @@ class LanguageServerHandler:
             return
         except Exception as ex:
             if (not self._received_shutdown) and self.logger:
-                self.logger(
-                    "client",
-                    "logger",
-                    str(
+                self.logger.debug(
+                    f"client -> logger: {
                         {
                             "type": MessageType.error,
                             "message": str(ex),
                             "method": method,
                             "params": params,
                         }
-                    ),
+                    }"
                 )

@@ -57,6 +57,8 @@ class LanguageServer:
     It is used to communicate with Language Servers of different programming languages.
     """
 
+    _meta_files: List[str] = []
+
     @classmethod
     def create(
         cls,
@@ -78,6 +80,7 @@ class LanguageServer:
         """
         if logger is None:
             logger = logging.getLogger("multilspy")
+            logger.setLevel(logging.INFO)
 
         if config.code_language == Language.PYTHON:
             from multilspy.language_servers.jedi_language_server.jedi_server import (
@@ -144,20 +147,10 @@ class LanguageServer:
         self.repository_root_path: str = repository_root_path
         self.completions_available = asyncio.Event()
 
-        if config.trace_lsp_communication:
-
-            def logging_fn(source, target, msg):
-                self.logger.info(f"LSP: {source} -> {target}: {str(msg)}")
-
-        else:
-
-            def logging_fn(source, target, msg):
-                pass
-
         # cmd is obtained from the child classes, which provide the language specific command to start the language server
         # LanguageServerHandler provides the functionality to start the language server and communicate with it
         self.server: LanguageServerHandler = LanguageServerHandler(
-            process_launch_info, logger=logging_fn
+            process_launch_info, logger=logger
         )
 
         self.language_id = language_id
@@ -185,6 +178,10 @@ class LanguageServer:
             await self.stop()
 
     async def start(self):
+        self.meta_modified = {
+            file: os.path.getmtime(os.path.join(self.repository_root_path, file))
+            for file in self._meta_files
+        }
         self.server_started = True
 
     async def stop(self):
@@ -247,6 +244,23 @@ class LanguageServer:
                         }
                     )
                 )
+
+    def _check_meta_change(self):
+        for file in self._meta_files:
+            path = os.path.join(self.repository_root_path, file)
+            modified = os.path.getmtime(path)
+            if modified > self.meta_modified[file]:
+                self.server.notify.did_change_watched_files(
+                    LSPTypes.DidChangeWatchedFilesParams(
+                        changes=[
+                            LSPTypes.FileEvent(
+                                uri=pathlib.Path(path).as_uri(),
+                                type=LSPTypes.FileChangeType.Changed,
+                            )
+                        ]
+                    )
+                )
+                self.meta_modified[file] = modified
 
     def insert_text_at_position(
         self, relative_file_path: str, line: int, column: int, text_to_be_inserted: str
@@ -384,7 +398,7 @@ class LanguageServer:
         file_buffer = self.file_buffers[uri]
         return file_buffer.contents
 
-    def loc2loc(self, loc: LSPTypes.Location) -> multilspy_types.Location:
+    def _loc2loc(self, loc: LSPTypes.Location) -> multilspy_types.Location:
         absolute_path = PathUtils.uri_to_path(loc.uri)
         relative_path = os.path.relpath(absolute_path, self.repository_root_path)
 
@@ -413,7 +427,7 @@ class LanguageServer:
                 "find_function_definition called before Language Server started",
             )
             raise MultilspyException("Language Server not started")
-
+        self._check_meta_change()
         with self.file_opened(relative_file_path):
             # sending request to the language server and waiting for response
             response = await self.server.send.definition(
@@ -437,7 +451,7 @@ class LanguageServer:
             # response is either of type Location[] or LocationLink[]
             for item in response:
                 if isinstance(item, LSPTypes.Location):
-                    ret.append(self.loc2loc(item))
+                    ret.append(self._loc2loc(item))
                 elif isinstance(item, LSPTypes.LocationLink):
 
                     uri = item.targetUri
@@ -460,7 +474,7 @@ class LanguageServer:
                 else:
                     assert False, f"Unexpected response from Language Server: {item}"
         elif isinstance(response, LSPTypes.Location):
-            ret.append(self.loc2loc(response))
+            ret.append(self._loc2loc(response))
         else:
             assert False, f"Unexpected response from Language Server: {response}"
 
@@ -485,7 +499,7 @@ class LanguageServer:
                 "find_all_callers_of_function called before Language Server started",
             )
             raise MultilspyException("Language Server not started")
-
+        self._check_meta_change()
         with self.file_opened(relative_file_path):
             # sending request to the language server and waiting for response
             response = await self.server.send.references(
@@ -538,6 +552,7 @@ class LanguageServer:
 
         :return List[multilspy_types.CompletionItem]: A list of completions
         """
+        self._check_meta_change()
         with self.file_opened(relative_file_path):
             open_file_buffer = self.file_buffers[
                 pathlib.Path(
@@ -640,6 +655,7 @@ class LanguageServer:
 
         :return Tuple[List[multilspy_types.UnifiedSymbolInformation], Union[List[multilspy_types.TreeRepr], None]]: A list of symbols in the file, and the tree representation of the symbols
         """
+        self._check_meta_change()
         with self.file_opened(relative_file_path):
             response = await self.server.send.document_symbol(
                 LSPTypes.DocumentSymbolParams.model_validate(
@@ -703,6 +719,7 @@ class LanguageServer:
 
         :return None
         """
+        self._check_meta_change()
         with self.file_opened(relative_file_path):
             response = await self.server.send.hover(
                 LSPTypes.HoverParams.model_validate(
